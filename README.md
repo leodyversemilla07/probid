@@ -85,7 +85,7 @@ Tip: use `--cache-only` on `probe`, `search`, and `awards` to query the local SQ
 - R1: Repeat supplier concentration
 - R2: Near-ABC award pattern
 - R3: Potential split contracts in short interval
-- R4: Procurement mode outlier frequency
+- R4: Procurement mode outlier frequency (excluding unknown mode labels)
 - R5: Abnormal budget-utilization spread for similar category
 - R6: Single-agency dependence risk (supplier)
 - R7: Sparse/low-confidence data warning

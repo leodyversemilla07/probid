@@ -319,39 +319,60 @@ def analyze_probe_findings(
             )
         )
 
-    # R2: near-ABC awards pattern
+    # R2: near-ABC awards pattern (tightened to reduce noise)
+    # Use query/agency filters when provided so findings reflect probe scope.
+    near_where = [
+        "approved_budget > 0",
+        "award_amount > 0",
+        "(award_amount / approved_budget) BETWEEN 0.985 AND 1.00",
+    ]
+    near_params: list[Any] = []
+    if query:
+        q = f"%{query}%"
+        near_where.append("(project_title LIKE ? OR supplier LIKE ?)")
+        near_params.extend([q, q])
+    if agency:
+        near_where.append("agency LIKE ?")
+        near_params.append(f"%{agency}%")
+
     near_rows = conn.execute(
-        """
+        f"""
         SELECT agency, supplier,
                COUNT(*) AS hit_count,
-               AVG(CASE WHEN approved_budget > 0 THEN (award_amount / approved_budget) * 100 END) AS avg_utilization,
+               AVG((award_amount / approved_budget) * 100) AS avg_utilization,
+               MIN((award_amount / approved_budget) * 100) AS min_utilization,
+               MAX((award_amount / approved_budget) * 100) AS max_utilization,
                SUM(award_amount) AS total_amount
         FROM awards
-        WHERE approved_budget > 0
-          AND award_amount > 0
-          AND (award_amount / approved_budget) BETWEEN 0.97 AND 1.00
+        WHERE {' AND '.join(near_where)}
         GROUP BY LOWER(TRIM(agency)), LOWER(TRIM(supplier))
-        HAVING hit_count >= 2
-        ORDER BY hit_count DESC
+        HAVING hit_count >= 3
+        ORDER BY hit_count DESC, total_amount DESC
         LIMIT 5
-    """
+    """,
+        near_params,
     ).fetchall()
 
     for row in near_rows:
         hit_count = int(row["hit_count"] or 0)
-        confidence = "high" if hit_count >= 4 else "medium"
+        avg_util = float(row["avg_utilization"] or 0)
+        min_util = float(row["min_utilization"] or 0)
+        max_util = float(row["max_utilization"] or 0)
+        confidence = "high" if hit_count >= 5 and avg_util >= 99.0 else "medium"
         findings.append(
             _build_finding(
                 "R2",
                 "Near-ABC award pattern",
                 "medium",
                 confidence,
-                f"{row['supplier']} in {row['agency']} has {hit_count} awards near 97-100% of ABC.",
+                f"{row['supplier']} in {row['agency']} has {hit_count} awards near 98.5-100% of ABC.",
                 {
                     "agency": row["agency"],
                     "supplier": row["supplier"],
                     "hit_count": hit_count,
-                    "avg_utilization_pct": round(float(row["avg_utilization"] or 0), 2),
+                    "avg_utilization_pct": round(avg_util, 2),
+                    "min_utilization_pct": round(min_util, 2),
+                    "max_utilization_pct": round(max_util, 2),
                     "total_amount": row["total_amount"] or 0,
                 },
                 "Near-ABC awards may still occur in competitive markets with tight costing.",
@@ -386,35 +407,50 @@ def analyze_probe_findings(
         if split_hits >= 5:
             break
 
-    # R4: procurement mode outlier frequency
+    # R4: procurement mode outlier frequency (exclude UNKNOWN to reduce noise)
     mode_rows = conn.execute(
         """
-        SELECT COALESCE(NULLIF(TRIM(notice_type), ''), 'UNKNOWN') AS notice_type,
-               COUNT(*) AS cnt
-        FROM notices
+        SELECT notice_type, COUNT(*) AS cnt
+        FROM (
+            SELECT COALESCE(NULLIF(TRIM(notice_type), ''), 'UNKNOWN') AS notice_type
+            FROM notices
+            WHERE (? = '' OR title LIKE ? OR category LIKE ? OR description LIKE ? OR ref_no LIKE ?)
+              AND (? = '' OR agency LIKE ?)
+        ) scoped
         GROUP BY notice_type
         ORDER BY cnt DESC
-    """
+    """,
+        [
+            query,
+            f"%{query}%",
+            f"%{query}%",
+            f"%{query}%",
+            f"%{query}%",
+            agency,
+            f"%{agency}%",
+        ],
     ).fetchall()
-    total_mode = sum(int(r["cnt"] or 0) for r in mode_rows)
-    if total_mode >= 10 and mode_rows:
-        top_mode = mode_rows[0]
+    known_modes = [r for r in mode_rows if r["notice_type"] != "UNKNOWN"]
+    total_mode = sum(int(r["cnt"] or 0) for r in known_modes)
+    if total_mode >= 10 and known_modes:
+        top_mode = known_modes[0]
         share = (int(top_mode["cnt"]) / total_mode) * 100
-        if share >= 70:
+        # trigger only when both dominance and non-trivial volume are present
+        if int(top_mode["cnt"]) >= 8 and share >= 80:
             findings.append(
                 _build_finding(
                     "R4",
                     "Procurement mode outlier",
                     "medium",
                     "medium",
-                    f"Mode '{top_mode['notice_type']}' accounts for {share:.1f}% of notices.",
+                    f"Mode '{top_mode['notice_type']}' accounts for {share:.1f}% of scoped notices.",
                     {
                         "notice_type": top_mode["notice_type"],
                         "mode_count": int(top_mode["cnt"]),
-                        "total_notices": total_mode,
+                        "total_scoped_notices": total_mode,
                         "share_pct": round(share, 2),
                     },
-                    "Dataset scope and category mix can skew mode-share ratios.",
+                    "Specialized datasets or single-category searches can skew mode-share ratios.",
                 )
             )
 
