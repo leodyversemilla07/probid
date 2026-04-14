@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.scripts]
-probid = "probid.cli:cli"
+probid = "app.cli:cli"
 
 [build-system]
 requires = ["setuptools>=68"]
