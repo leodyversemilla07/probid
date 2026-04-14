@@ -1,5 +1,6 @@
 from app.agent.runtime import ProbidAgentRuntime
 from app.agent.provider_registry import Provider, get_provider, register_provider, unregister_providers
+from app.agent.auth import AgentAuthStore
 
 __all__ = [
     "ProbidAgentRuntime",
@@ -7,4 +8,5 @@ __all__ = [
     "get_provider",
     "register_provider",
     "unregister_providers",
+    "AgentAuthStore",
 ]

@@ -27,6 +27,8 @@ This file is the single source of instructions for coding agents working in this
 - One-shot agent query (text): `probid -q "probe laptop"`
 - One-shot agent query (JSON): `probid -q "probe laptop" --json-output`
 - Agent session logging is disabled by default. Enable with `PROBID_AGENT_LOG_SESSION=1`.
+- Local auth file for `/login` and `/logout`: `~/.probid/auth.json` (override with `PROBID_AUTH_FILE`).
+- GitHub Copilot aliases supported in REPL auth: `copilot`, `github copilot`, `github-copilot`.
 - Probe with evidence/caveats: `probid probe "laptop" --why`
 - Probe JSON output: `probid probe "laptop" --json`
 - Probe confidence filter: `probid probe "laptop" --min-confidence medium`

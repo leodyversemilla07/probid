@@ -116,6 +116,8 @@ Tip: use `--cache-only` on `probe`, `search`, and `awards` to query the local SQ
 
 Tip: in interactive mode (`probid`), type `/prompt` to view the active agent system prompt.
 Tip: `/tools` shows strict CLI-parity capabilities, and `/mode` prints runtime mode toggles.
+Tip: use `/login <provider> <token>` and `/logout [provider]` for local auth profile toggles.
+For GitHub Copilot, `/login copilot <token>` and `/logout copilot` map to `github-copilot`.
 
 ## Reason codes
 

@@ -112,6 +112,47 @@ class AgentRuntimeContractTests(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("probid (minimal + agentive)", result.output)
 
+    def test_repl_login_logout_commands(self):
+        from app.cli import cli
+
+        with tempfile.TemporaryDirectory() as td:
+            auth_path = Path(td) / "auth.json"
+            runner = CliRunner()
+            result = runner.invoke(
+                cli,
+                env={"PROBID_AUTH_FILE": str(auth_path)},
+                input="/login openai ***\n/logout openai\n/exit\n",
+            )
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Logged in: provider=openai", result.output)
+        self.assertIn("Logged out: provider=openai", result.output)
+
+    def test_repl_login_logout_github_copilot_alias(self):
+        from app.cli import cli
+
+        with tempfile.TemporaryDirectory() as td:
+            auth_path = Path(td) / "auth.json"
+            runner = CliRunner()
+            result = runner.invoke(
+                cli,
+                env={"PROBID_AUTH_FILE": str(auth_path)},
+                input="/login copilot ghu_abc123\n/logout github copilot\n/exit\n",
+            )
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Logged in: provider=github-copilot", result.output)
+        self.assertIn("Logged out: provider=github-copilot", result.output)
+
+    def test_repl_login_usage_message(self):
+        from app.cli import cli
+
+        runner = CliRunner()
+        result = runner.invoke(cli, input="/login\n/exit\n")
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Usage: /login <provider> <token>", result.output)
+
     def test_cli_query_mode_runs_single_turn(self):
         from app.cli import cli
 

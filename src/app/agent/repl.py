@@ -6,18 +6,20 @@ import json
 
 import click
 
+from app.agent.auth import AgentAuthStore
 from app.agent.runtime import ProbidAgentRuntime
 from app.ui import display
 
 
 def _print_help() -> None:
-    click.echo("Commands: /help, /json, /why, /prompt, /tools, /mode, /reset, /exit")
+    click.echo("Commands: /help, /json, /why, /prompt, /tools, /mode, /login, /logout, /reset, /exit")
 
 
 def run_agent_repl(runtime: ProbidAgentRuntime) -> None:
     click.echo("probid (minimal + agentive) — type /help for commands")
     json_mode = False
     why_mode = False
+    auth_store = AgentAuthStore()
 
     while True:
         try:
@@ -53,6 +55,30 @@ def run_agent_repl(runtime: ProbidAgentRuntime) -> None:
             click.echo(
                 f"mode=interactive json_mode={json_mode} why_mode={why_mode} cache_only={runtime.default_cache_only}"
             )
+            continue
+        if cmd.startswith("/login"):
+            parts = user_input.strip().split(maxsplit=2)
+            if len(parts) < 3:
+                click.echo("Usage: /login <provider> <token>")
+                continue
+            provider, token = parts[1], parts[2]
+            normalized_provider = auth_store.login(provider=provider, token=token)
+            if normalized_provider == "github-copilot":
+                click.echo("Logged in: provider=github-copilot (token saved in local auth store)")
+            else:
+                click.echo(f"Logged in: provider={normalized_provider}")
+            continue
+        if cmd.startswith("/logout"):
+            parts = user_input.strip().split(maxsplit=1)
+            provider = parts[1] if len(parts) > 1 else None
+            removed, normalized_provider = auth_store.logout(provider=provider)
+            if provider:
+                if removed:
+                    click.echo(f"Logged out: provider={normalized_provider}")
+                else:
+                    click.echo(f"No active login found for provider={normalized_provider}")
+            else:
+                click.echo("Logged out all providers." if removed else "No active logins.")
             continue
         if cmd == "/reset":
             click.echo("Session reset (runtime stateless; logs continue).")
