@@ -2,6 +2,14 @@
 
 Probe Philippine government procurement.
 
+Minimal tool. Serious purpose.
+
+- Local-first procurement scrutiny
+- Explainable risk flags (not verdicts)
+- RA 12009 + IRR baseline
+
+See `PHILOSOPHY.md` for the full project stance.
+
 `probid` helps you search PhilGEPS notices, inspect notice details, review contract awards, and run simple heuristics for suspicious procurement patterns.
 
 Data source: [PhilGEPS](https://notices.philgeps.gov.ph/) (Philippine Government Electronic Procurement System).
