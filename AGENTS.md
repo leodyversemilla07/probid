@@ -22,6 +22,11 @@ This file is the single source of instructions for coding agents working in this
 ## Common run commands
 
 - Probe (summary-first): `probid probe "laptop"`
+- Agent shell: `probid` (default interactive)
+- Agent shell alias: `probid agent`
+- One-shot agent query (text): `probid -q "probe laptop"`
+- One-shot agent query (JSON): `probid -q "probe laptop" --json-output`
+- Agent session logging is disabled by default. Enable with `PROBID_AGENT_LOG_SESSION=1`.
 - Probe with evidence/caveats: `probid probe "laptop" --why`
 - Probe JSON output: `probid probe "laptop" --json`
 - Probe confidence filter: `probid probe "laptop" --min-confidence medium`

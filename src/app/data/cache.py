@@ -33,9 +33,10 @@ def _get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
-    if not _tables_initialized:
-        _ensure_tables(conn)
-        _tables_initialized = True
+    # Ensure schema exists for this specific database path. The old global-only
+    # gate breaks with multiple db files (e.g., tests using temp DBs).
+    _ensure_tables(conn)
+    _tables_initialized = True
     return conn
 
 

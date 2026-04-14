@@ -7,6 +7,7 @@ Minimal tool. Serious purpose.
 - Local-first procurement scrutiny
 - Explainable risk flags (not verdicts)
 - RA 12009 + IRR baseline
+- Minimal interactive default (`probid` opens REPL)
 
 See `AGENTS.md` for agent-specific project guidance.
 
@@ -42,6 +43,27 @@ PYTHONPATH=src python3 -m unittest tests/test_probe_output_contract.py -v
 ## Usage
 
 ```bash
+# Open minimal interactive shell (default)
+probid
+
+# One-shot query mode (text)
+probid -q "probe laptop"
+
+# One-shot query mode with explicit provider
+probid -q "probe laptop" --provider deterministic
+
+# One-shot query mode (JSON)
+probid -q "probe laptop" --json-output
+
+# Open explicit agent shell (same REPL)
+probid agent
+
+# Open explicit agent shell with provider
+probid agent --provider deterministic
+
+# Enable local session logging (off by default)
+PROBID_AGENT_LOG_SESSION=1 probid -q "probe laptop" --json-output
+
 # Probe procurement data (summary-first)
 probid probe "laptop"
 
@@ -91,6 +113,9 @@ probid agencies
 ```
 
 Tip: use `--cache-only` on `probe`, `search`, and `awards` to query the local SQLite cache without scraping.
+
+Tip: in interactive mode (`probid`), type `/prompt` to view the active agent system prompt.
+Tip: `/tools` shows strict CLI-parity capabilities, and `/mode` prints runtime mode toggles.
 
 ## Reason codes
 
