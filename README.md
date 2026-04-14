@@ -8,7 +8,7 @@ Minimal tool. Serious purpose.
 - Explainable risk flags (not verdicts)
 - RA 12009 + IRR baseline
 
-See `PHILOSOPHY.md` for the full project stance.
+See `AGENTS.md` for agent-specific project guidance.
 
 `probid` helps you search PhilGEPS notices, inspect notice details, review contract awards, and run simple heuristics for suspicious procurement patterns.
 
