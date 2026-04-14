@@ -385,6 +385,13 @@ def show_probe_summary(result: dict) -> None:
     metadata = result.get("metadata", {})
     summary = result.get("summary", {})
 
+    status = summary.get("data_quality_status", "unknown")
+    status_style = {
+        "adequate": "green",
+        "limited": "yellow",
+        "constrained": "red",
+    }.get(status, "white")
+
     lines = [
         f"[bold]Query:[/bold] {metadata.get('query', '')}",
         f"[bold]Agency filter:[/bold] {metadata.get('agency') or '—'}",
@@ -393,6 +400,8 @@ def show_probe_summary(result: dict) -> None:
         f"[bold]Agencies touched:[/bold] {summary.get('agencies_touched', 0)}",
         f"[bold]Known award value:[/bold] {format_php(summary.get('total_known_value', 0) or 0)}",
         f"[bold]Findings:[/bold] {summary.get('finding_count', 0)}",
+        f"[bold]Data quality:[/bold] [{status_style}]{status}[/{status_style}]",
+        f"[dim]{summary.get('data_quality_note', '')}[/dim]",
     ]
 
     console.print(

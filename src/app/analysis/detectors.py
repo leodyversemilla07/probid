@@ -277,6 +277,16 @@ def analyze_probe_findings(
     agencies_touched = len({*(n.get("agency", "") for n in notices), *(a.get("agency", "") for a in awards)} - {""})
     total_known_value = sum((a.get("award_amount", 0) or 0) for a in awards)
 
+    if len(awards) < 5 and len(notices) < 10:
+        data_quality_status = "constrained"
+        data_quality_note = "Very limited local data; findings are low-confidence for broad conclusions."
+    elif len(awards) < 15 and len(notices) < 25:
+        data_quality_status = "limited"
+        data_quality_note = "Limited data volume; use wider query/pages for stronger signal."
+    else:
+        data_quality_status = "adequate"
+        data_quality_note = "Data volume is adequate for initial triage-level findings."
+
     # R7: sparse data warning
     if len(awards) < 5 and len(notices) < 10:
         findings.append(
@@ -561,6 +571,8 @@ def analyze_probe_findings(
             "agencies_touched": agencies_touched,
             "total_known_value": total_known_value,
             "finding_count": len(findings),
+            "data_quality_status": data_quality_status,
+            "data_quality_note": data_quality_note,
         },
         "risk_map": risk_map,
         "findings": findings,

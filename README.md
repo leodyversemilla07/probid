@@ -91,6 +91,11 @@ Tip: use `--cache-only` on `probe`, `search`, and `awards` to query the local SQ
 - R7: Sparse/low-confidence data warning
 - R8: Beneficial ownership disclosure gap (data unavailable locally)
 
+`probe` summary also includes a data-quality gate:
+- `adequate`: enough local volume for initial triage signal
+- `limited`: use wider query/pages for stronger confidence
+- `constrained`: very sparse local data; findings are low-confidence
+
 ## Project structure
 
 The repo name remains `probid`, and the installed CLI command is still `probid`, but the internal Python package is now `app`.
