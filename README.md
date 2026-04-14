@@ -31,6 +31,12 @@ pip install -e .
 playwright install chromium
 ```
 
+## Tests
+
+```bash
+PYTHONPATH=src python3 -m unittest tests/test_probe_output_contract.py -v
+```
+
 ## Usage
 
 ```bash

@@ -17,6 +17,7 @@ This file is the single source of instructions for coding agents working in this
 - Install deps: `pip install -e .`
 - Install browser: `playwright install chromium`
 - Run CLI help: `probid --help`
+- Run probe contract tests: `PYTHONPATH=src python3 -m unittest tests/test_probe_output_contract.py -v`
 
 ## Common run commands
 
