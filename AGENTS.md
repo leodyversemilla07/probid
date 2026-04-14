@@ -14,8 +14,8 @@ This file is the single source of instructions for coding agents working in this
 
 ## Setup commands
 
-- Install deps: `pip install -e .`
-- Install browser: `playwright install chromium`
+- Install deps: `uv sync`
+- Install browser (optional): `uv sync --all-extras && playwright install chromium`
 - Run CLI help: `probid --help`
 - Run probe contract tests: `PYTHONPATH=src python3 -m unittest tests/test_probe_output_contract.py -v`
 

@@ -27,8 +27,10 @@ Data source: [PhilGEPS](https://notices.philgeps.gov.ph/) (Philippine Government
 ## Install
 
 ```bash
-pip install -e .
-playwright install chromium
+uv sync
+# For browser/scraper support (Linux/Mac/Windows):
+# uv sync --all-extras
+# playwright install chromium
 ```
 
 ## Tests
