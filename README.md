@@ -65,7 +65,7 @@ Tip: use `--cache-only` on `search` and `awards` to query the local SQLite cache
 The repo name remains `probid`, and the installed CLI command is still `probid`, but the internal Python package is now `app`.
 
 ```text
-.
+probid
 ├── README.md
 ├── pyproject.toml
 └── src
@@ -86,6 +86,24 @@ The repo name remains `probid`, and the installed CLI command is still `probid`,
         │   └── philgeps.py
         └── ui
             └── display.py
+```
+
+## How the project works
+
+```mermaid
+flowchart TD
+    User["User runs probid command"] --> CLI["CLI entrypoint\nsrc/app/cli.py"]
+    CLI --> Commands["Command handlers\nsrc/app/commands/*"]
+
+    Commands -->|fetch live data| Source["PhilGEPS scraper\nsrc/app/sources/philgeps.py"]
+    Commands -->|read/write local data| Cache["SQLite cache\nsrc/app/data/cache.py"]
+    Commands -->|run heuristics| Detectors["Analysis engine\nsrc/app/analysis/detectors.py"]
+    Commands -->|render output| UI["Terminal display\nsrc/app/ui/display.py"]
+
+    Source --> Cache
+    Cache --> Detectors
+    Detectors --> UI
+    Cache --> UI
 ```
 
 ### Responsibilities
