@@ -23,6 +23,8 @@ This file is the single source of instructions for coding agents working in this
 - Probe (summary-first): `probid probe "laptop"`
 - Probe with evidence/caveats: `probid probe "laptop" --why`
 - Probe JSON output: `probid probe "laptop" --json`
+- Probe confidence filter: `probid probe "laptop" --min-confidence medium`
+- Probe capped findings: `probid probe "laptop" --max-findings 3`
 - Search notices: `probid search "laptop"`
 - Search with details: `probid search "server" --pages 3 --detail`
 - Notice detail: `probid detail 12905086`

@@ -225,6 +225,8 @@ def _build_finding(
     summary: str,
     evidence: dict[str, Any],
     caveat: str,
+    refs: list[str] | None = None,
+    follow_up: list[str] | None = None,
 ) -> dict[str, Any]:
     return {
         "reason_code": code,
@@ -234,7 +236,13 @@ def _build_finding(
         "summary": summary,
         "evidence": evidence,
         "caveat": caveat,
+        "refs": refs or [],
+        "follow_up": follow_up or [],
     }
+
+
+def _confidence_rank(label: str) -> int:
+    return {"low": 1, "medium": 2, "high": 3}.get(label, 1)
 
 
 def analyze_probe_findings(
@@ -244,6 +252,8 @@ def analyze_probe_findings(
     pages_scanned: int = 1,
     split_gap_days: int = 30,
     repeat_min_count: int = 3,
+    min_confidence: str = "low",
+    max_findings: int = 5,
 ) -> dict[str, Any]:
     """Build reason-coded findings for probe summary output.
 
@@ -312,6 +322,18 @@ def analyze_probe_findings(
         agency_count = int(row.get("agency_count", 0) or 0)
         confidence = "high" if award_count >= 6 and agency_count >= 2 else "medium"
         severity = "high" if award_count >= 8 else "medium"
+        sample_refs = [
+            r["ref_no"]
+            for r in conn.execute(
+                """
+                SELECT ref_no FROM awards
+                WHERE supplier LIKE ?
+                ORDER BY award_date DESC
+                LIMIT 5
+            """,
+                (f"%{supplier}%",),
+            ).fetchall()
+        ]
         findings.append(
             _build_finding(
                 "R1",
@@ -326,6 +348,11 @@ def analyze_probe_findings(
                     "total_value": row.get("total_value", 0) or 0,
                 },
                 "High frequency can be legitimate for specialized suppliers; verify market depth.",
+                refs=sample_refs,
+                follow_up=[
+                    f"probid supplier \"{supplier}\"",
+                    f"probid network \"{supplier}\"",
+                ],
             )
         )
 
@@ -552,8 +579,14 @@ def analyze_probe_findings(
         reverse=True,
     )
 
+    min_rank = _confidence_rank(min_confidence)
+    filtered_findings = [f for f in findings if _confidence_rank(f.get("confidence", "low")) >= min_rank]
+
+    if max_findings > 0:
+        filtered_findings = filtered_findings[:max_findings]
+
     risk_map: dict[str, int] = {}
-    for f in findings:
+    for f in filtered_findings:
         code = f["reason_code"]
         risk_map[code] = risk_map.get(code, 0) + 1
 
@@ -563,6 +596,8 @@ def analyze_probe_findings(
             "agency": agency,
             "pages_scanned": pages_scanned,
             "generated_at": datetime.utcnow().isoformat() + "Z",
+            "min_confidence": min_confidence,
+            "max_findings": max_findings,
         },
         "summary": {
             "records_scanned": records_scanned,
@@ -570,10 +605,10 @@ def analyze_probe_findings(
             "award_count": len(awards),
             "agencies_touched": agencies_touched,
             "total_known_value": total_known_value,
-            "finding_count": len(findings),
+            "finding_count": len(filtered_findings),
             "data_quality_status": data_quality_status,
             "data_quality_note": data_quality_note,
         },
         "risk_map": risk_map,
-        "findings": findings,
+        "findings": filtered_findings,
     }

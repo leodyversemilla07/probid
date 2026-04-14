@@ -433,7 +433,7 @@ def show_probe_findings(findings: list[dict], show_why: bool = False) -> None:
     table.add_column("Confidence", width=10)
     table.add_column("Summary", max_width=80)
 
-    for finding in findings[:5]:
+    for finding in findings:
         table.add_row(
             finding.get("reason_code", ""),
             finding.get("severity", ""),
@@ -452,8 +452,10 @@ def show_probe_findings(findings: list[dict], show_why: bool = False) -> None:
     console.print(f"[dim]Risk map:[/dim] {'  '.join(risk_parts)}")
 
     if show_why:
-        for finding in findings[:5]:
+        for finding in findings:
             evidence = finding.get("evidence", {})
+            refs = finding.get("refs", [])
+            follow_up = finding.get("follow_up", [])
             lines = [
                 f"[bold]Code:[/bold] {finding.get('reason_code', '')}",
                 f"[bold]Summary:[/bold] {finding.get('summary', '')}",
@@ -464,6 +466,13 @@ def show_probe_findings(findings: list[dict], show_why: bool = False) -> None:
                 lines.append("[bold]Evidence:[/bold]")
                 for k, v in evidence.items():
                     lines.append(f"  - {k}: {v}")
+            if refs:
+                lines.append("[bold]Reference IDs:[/bold]")
+                lines.append("  - " + ", ".join(str(r) for r in refs[:5]))
+            if follow_up:
+                lines.append("[bold]Follow-up commands:[/bold]")
+                for cmd in follow_up:
+                    lines.append(f"  - {cmd}")
             console.print(
                 Panel(
                     "\n".join(lines),
@@ -486,6 +495,8 @@ def show_probe_next_checks(result: dict) -> None:
         "- probid split \"<agency>\" --gap-days 30",
         f"- probid probe \"{query}\" --why",
         f"- probid probe \"{query}\" --json",
+        f"- probid probe \"{query}\" --min-confidence medium",
+        f"- probid probe \"{query}\" --max-findings 3",
     ]
 
     console.print(

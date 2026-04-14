@@ -85,8 +85,25 @@ def register_search_commands(cli: click.Group) -> None:
     @click.option("--pages", "-p", default=1, help="Pages to scrape if live fetch is needed")
     @click.option("--why", is_flag=True, help="Show evidence and caveats for each finding")
     @click.option("--json", "as_json", is_flag=True, help="Emit machine-readable JSON")
+    @click.option(
+        "--min-confidence",
+        type=click.Choice(["low", "medium", "high"], case_sensitive=False),
+        default="low",
+        show_default=True,
+        help="Only include findings at or above this confidence",
+    )
+    @click.option("--max-findings", type=int, default=5, show_default=True, help="Maximum findings to return")
     @click.option("--cache-only", is_flag=True, help="Use local cache only (no live scraping)")
-    def probe(query: str, agency: str, pages: int, why: bool, as_json: bool, cache_only: bool):
+    def probe(
+        query: str,
+        agency: str,
+        pages: int,
+        why: bool,
+        as_json: bool,
+        min_confidence: str,
+        max_findings: int,
+        cache_only: bool,
+    ):
         """Probe procurement data with summary-first, reason-coded risk findings."""
         pages_count = max(1, pages)
 
@@ -108,6 +125,8 @@ def register_search_commands(cli: click.Group) -> None:
                 query=query,
                 agency=agency,
                 pages_scanned=pages_count,
+                min_confidence=min_confidence.lower(),
+                max_findings=max(1, max_findings),
             )
 
             if as_json:

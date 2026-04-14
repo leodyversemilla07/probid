@@ -37,6 +37,12 @@ playwright install chromium
 # Probe procurement data (summary-first)
 probid probe "laptop"
 
+# Probe with confidence filter
+probid probe "laptop" --min-confidence medium
+
+# Probe with capped findings
+probid probe "laptop" --max-findings 3
+
 # Probe with explainers (evidence + caveats)
 probid probe "laptop" --why
 
