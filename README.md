@@ -16,6 +16,7 @@ Data source: [PhilGEPS](https://notices.philgeps.gov.ph/) (Philippine Government
 
 ## Features
 
+- Probe data with summary-first, reason-coded findings (`probe`)
 - Search procurement notices by keyword
 - Fetch full notice details by reference number
 - View recent contract awards
@@ -33,6 +34,15 @@ playwright install chromium
 ## Usage
 
 ```bash
+# Probe procurement data (summary-first)
+probid probe "laptop"
+
+# Probe with explainers (evidence + caveats)
+probid probe "laptop" --why
+
+# Probe as machine-readable JSON
+probid probe "laptop" --json
+
 # Search procurement notices
 probid search "laptop"
 probid search "server" --pages 3 --detail
@@ -66,7 +76,20 @@ probid split "DICT" --gap-days 30
 probid agencies
 ```
 
-Tip: use `--cache-only` on `search` and `awards` to query the local SQLite cache without scraping.
+Tip: use `--cache-only` on `probe`, `search`, and `awards` to query the local SQLite cache without scraping.
+
+## Reason codes
+
+`probe` findings use reason codes for explainability:
+
+- R1: Repeat supplier concentration
+- R2: Near-ABC award pattern
+- R3: Potential split contracts in short interval
+- R4: Procurement mode outlier frequency
+- R5: Abnormal budget-utilization spread for similar category
+- R6: Single-agency dependence risk (supplier)
+- R7: Sparse/low-confidence data warning
+- R8: Beneficial ownership disclosure gap (data unavailable locally)
 
 ## Project structure
 

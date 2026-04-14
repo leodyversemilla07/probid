@@ -1,6 +1,7 @@
 """Analysis and anomaly detection for procurement data."""
 
 from app.analysis.detectors import (
+    analyze_probe_findings,
     detect_split_contracts,
     find_price_anomalies,
     find_repeat_awardees,
@@ -8,6 +9,7 @@ from app.analysis.detectors import (
 )
 
 __all__ = [
+    "analyze_probe_findings",
     "detect_split_contracts",
     "find_price_anomalies",
     "find_repeat_awardees",

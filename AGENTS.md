@@ -20,6 +20,9 @@ This file is the single source of instructions for coding agents working in this
 
 ## Common run commands
 
+- Probe (summary-first): `probid probe "laptop"`
+- Probe with evidence/caveats: `probid probe "laptop" --why`
+- Probe JSON output: `probid probe "laptop" --json`
 - Search notices: `probid search "laptop"`
 - Search with details: `probid search "server" --pages 3 --detail`
 - Notice detail: `probid detail 12905086`

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import click
 
+from app import analysis
 from app.data import cache
 from app.sources import philgeps as geps
 from app.ui import display
@@ -53,7 +54,8 @@ def register_search_commands(cli: click.Group) -> None:
             if agency:
                 agency_term = agency.lower()
                 results = [
-                    result for result in results
+                    result
+                    for result in results
                     if agency_term in result.get("agency", "").lower()
                     or agency_term in result.get("area_of_delivery", "").lower()
                 ]
@@ -73,11 +75,48 @@ def register_search_commands(cli: click.Group) -> None:
                             cache.upsert_notice(conn, merged)
                             display.show_notice_detail(merged)
                         except Exception as e:
-                            display.error(
-                                f"Detail fetch failed for {result['ref_no']}: {e}"
-                            )
+                            display.error(f"Detail fetch failed for {result['ref_no']}: {e}")
 
             geps.close()
+
+    @cli.command()
+    @click.argument("query")
+    @click.option("--agency", "-a", default="", help="Optional agency filter")
+    @click.option("--pages", "-p", default=1, help="Pages to scrape if live fetch is needed")
+    @click.option("--why", is_flag=True, help="Show evidence and caveats for each finding")
+    @click.option("--json", "as_json", is_flag=True, help="Emit machine-readable JSON")
+    @click.option("--cache-only", is_flag=True, help="Use local cache only (no live scraping)")
+    def probe(query: str, agency: str, pages: int, why: bool, as_json: bool, cache_only: bool):
+        """Probe procurement data with summary-first, reason-coded risk findings."""
+        pages_count = max(1, pages)
+
+        with cache.connection() as conn:
+            if not cache_only:
+                display.info(f'Probing PhilGEPS for "{query}" (pages={pages_count})...')
+                try:
+                    notices = geps.search(query, max_pages=pages_count)
+                    for notice in notices:
+                        cache.upsert_notice(conn, notice)
+                except Exception as e:
+                    display.error(f"Live fetch failed: {e}")
+                    display.info("Continuing with local cache...")
+                finally:
+                    geps.close()
+
+            result = analysis.analyze_probe_findings(
+                conn,
+                query=query,
+                agency=agency,
+                pages_scanned=pages_count,
+            )
+
+            if as_json:
+                click.echo(json.dumps(result, indent=2, ensure_ascii=False))
+                return
+
+            display.show_probe_summary(result)
+            display.show_probe_findings(result.get("findings", []), show_why=why)
+            display.show_probe_next_checks(result)
 
     @cli.command()
     @click.argument("ref_id")

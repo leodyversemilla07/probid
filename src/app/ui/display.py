@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
 from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
 console = Console()
 
@@ -29,7 +29,7 @@ def show_notices(notices: list[dict], query: str = "") -> None:
         console.print("[yellow]No results found.[/yellow]")
         return
 
-    title = f"Procurement Notices"
+    title = "Procurement Notices"
     if query:
         title += f' — "{query}"'
 
@@ -94,12 +94,14 @@ def show_notice_detail(detail: dict) -> None:
     if detail.get("description"):
         panel_content.append(f"\n[bold]Description:[/bold]\n{detail['description']}")
 
-    console.print(Panel(
-        "\n".join(panel_content),
-        title=f"[bold cyan]Notice {detail.get('ref_no', '')}[/bold cyan]",
-        box=box.HEAVY,
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            "\n".join(panel_content),
+            title=f"[bold cyan]Notice {detail.get('ref_no', '')}[/bold cyan]",
+            box=box.HEAVY,
+            border_style="cyan",
+        )
+    )
 
 
 def show_awards(awards: list[dict], agency: str = "", supplier: str = "") -> None:
@@ -110,9 +112,9 @@ def show_awards(awards: list[dict], agency: str = "", supplier: str = "") -> Non
 
     title = "Recent Contract Awards"
     if agency:
-        title += f' — {agency}'
+        title += f" — {agency}"
     if supplier:
-        title += f' — {supplier}'
+        title += f" — {supplier}"
 
     table = Table(
         title=title,
@@ -169,16 +171,18 @@ def show_supplier_stats(stats: dict, supplier: str) -> None:
     ]
 
     if stats["agencies"]:
-        lines.append(f"\n[bold]Agencies:[/bold]")
+        lines.append("\n[bold]Agencies:[/bold]")
         for a in sorted(stats["agencies"]):
             lines.append(f"  - {a}")
 
-    console.print(Panel(
-        "\n".join(lines),
-        title=f"[bold green]Supplier Profile[/bold green]",
-        box=box.HEAVY,
-        border_style="green",
-    ))
+    console.print(
+        Panel(
+            "\n".join(lines),
+            title="[bold green]Supplier Profile[/bold green]",
+            box=box.HEAVY,
+            border_style="green",
+        )
+    )
 
 
 def show_agency_stats(stats: dict, agency: str) -> None:
@@ -190,19 +194,21 @@ def show_agency_stats(stats: dict, agency: str) -> None:
     ]
 
     if stats["top_suppliers"]:
-        lines.append(f"\n[bold]Top Suppliers:[/bold]")
+        lines.append("\n[bold]Top Suppliers:[/bold]")
         for s in stats["top_suppliers"]:
             name = s.get("supplier", "Unknown")
             total = format_php(s.get("total", 0))
             count = s.get("cnt", 0)
             lines.append(f"  {count}x {name} — {total}")
 
-    console.print(Panel(
-        "\n".join(lines),
-        title=f"[bold magenta]Agency Profile[/bold magenta]",
-        box=box.HEAVY,
-        border_style="magenta",
-    ))
+    console.print(
+        Panel(
+            "\n".join(lines),
+            title="[bold magenta]Agency Profile[/bold magenta]",
+            box=box.HEAVY,
+            border_style="magenta",
+        )
+    )
 
 
 def show_repeat_awardees(awardees: list[dict]) -> None:
@@ -303,16 +309,18 @@ def show_network(result: dict, supplier_name: str) -> None:
         lines.append(f"  - {a}")
 
     if result.get("competitors"):
-        lines.append(f"\n[bold]Competitors (shared agencies):[/bold]")
+        lines.append("\n[bold]Competitors (shared agencies):[/bold]")
         for c in result["competitors"][:10]:
             lines.append(f"  {c['supplier']} — {c['shared_agencies']} shared agencies")
 
-    console.print(Panel(
-        "\n".join(lines),
-        title="[bold cyan]Supplier Network[/bold cyan]",
-        box=box.HEAVY,
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            "\n".join(lines),
+            title="[bold cyan]Supplier Network[/bold cyan]",
+            box=box.HEAVY,
+            border_style="cyan",
+        )
+    )
 
 
 def show_agencies_list(agency_list: list[dict]) -> None:
@@ -354,20 +362,131 @@ def show_split_contracts(results: list[dict], agency: str) -> None:
         lines = [
             f"[bold red]Pattern:[/bold red] {r['pattern']}",
             f"[bold]Total value:[/bold] {format_php(r['total_value'])}",
-            f"[bold]Contracts:[/bold]",
+            "[bold]Contracts:[/bold]",
         ]
         for c in r["contracts"]:
-            date = c.get('award_date', '')
-            amount = format_php(c.get('award_amount', 0))
-            title = c.get('project_title', '')[:60]
+            date = c.get("award_date", "")
+            amount = format_php(c.get("award_amount", 0))
+            title = c.get("project_title", "")[:60]
             lines.append(f"  {date} — {amount} — {title}")
 
-        console.print(Panel(
+        console.print(
+            Panel(
+                "\n".join(lines),
+                title="[bold red]Split Contract Alert[/bold red]",
+                box=box.HEAVY,
+                border_style="red",
+            )
+        )
+
+
+def show_probe_summary(result: dict) -> None:
+    """Display summary-first probe result header."""
+    metadata = result.get("metadata", {})
+    summary = result.get("summary", {})
+
+    lines = [
+        f"[bold]Query:[/bold] {metadata.get('query', '')}",
+        f"[bold]Agency filter:[/bold] {metadata.get('agency') or '—'}",
+        f"[bold]Pages scanned:[/bold] {metadata.get('pages_scanned', 1)}",
+        f"[bold]Records scanned:[/bold] {summary.get('records_scanned', 0)}",
+        f"[bold]Agencies touched:[/bold] {summary.get('agencies_touched', 0)}",
+        f"[bold]Known award value:[/bold] {format_php(summary.get('total_known_value', 0) or 0)}",
+        f"[bold]Findings:[/bold] {summary.get('finding_count', 0)}",
+    ]
+
+    console.print(
+        Panel(
             "\n".join(lines),
-            title="[bold red]Split Contract Alert[/bold red]",
+            title="[bold cyan]Probe Summary[/bold cyan]",
             box=box.HEAVY,
-            border_style="red",
-        ))
+            border_style="cyan",
+        )
+    )
+
+
+def show_probe_findings(findings: list[dict], show_why: bool = False) -> None:
+    """Display reason-coded findings in compact table; evidence optional."""
+    if not findings:
+        info("No risk findings generated.")
+        return
+
+    table = Table(
+        title="Top Findings",
+        box=box.SQUARE,
+        show_lines=True,
+        title_style="bold yellow",
+        header_style="bold white on rgb(60,60,20)",
+        row_styles=["", "dim"],
+    )
+    table.add_column("Code", width=6, style="bold cyan")
+    table.add_column("Severity", width=8)
+    table.add_column("Confidence", width=10)
+    table.add_column("Summary", max_width=80)
+
+    for finding in findings[:5]:
+        table.add_row(
+            finding.get("reason_code", ""),
+            finding.get("severity", ""),
+            finding.get("confidence", ""),
+            finding.get("summary", ""),
+        )
+
+    console.print(table)
+
+    risk_map: dict[str, int] = {}
+    for finding in findings:
+        code = finding.get("reason_code", "")
+        risk_map[code] = risk_map.get(code, 0) + 1
+
+    risk_parts = [f"{code}:{count}" for code, count in sorted(risk_map.items())]
+    console.print(f"[dim]Risk map:[/dim] {'  '.join(risk_parts)}")
+
+    if show_why:
+        for finding in findings[:5]:
+            evidence = finding.get("evidence", {})
+            lines = [
+                f"[bold]Code:[/bold] {finding.get('reason_code', '')}",
+                f"[bold]Summary:[/bold] {finding.get('summary', '')}",
+                f"[bold]Confidence:[/bold] {finding.get('confidence', '')}",
+                f"[bold]Caveat:[/bold] {finding.get('caveat', '')}",
+            ]
+            if evidence:
+                lines.append("[bold]Evidence:[/bold]")
+                for k, v in evidence.items():
+                    lines.append(f"  - {k}: {v}")
+            console.print(
+                Panel(
+                    "\n".join(lines),
+                    title=f"[bold magenta]{finding.get('reason_code', '')} — Why[/bold magenta]",
+                    box=box.SQUARE,
+                    border_style="magenta",
+                )
+            )
+
+
+def show_probe_next_checks(result: dict) -> None:
+    """Display suggested follow-up commands for investigation."""
+    query = result.get("metadata", {}).get("query", "")
+
+    lines = [
+        "[bold]Suggested next checks:[/bold]",
+        f"- probid search \"{query}\" --detail",
+        "- probid awards --cache-only",
+        "- probid repeat --min-count 3",
+        "- probid split \"<agency>\" --gap-days 30",
+        f"- probid probe \"{query}\" --why",
+        f"- probid probe \"{query}\" --json",
+    ]
+
+    console.print(
+        Panel(
+            "\n".join(lines),
+            title="[bold green]Next Checks[/bold green]",
+            box=box.SQUARE,
+            border_style="green",
+        )
+    )
 
 
 def info(msg: str) -> None:
