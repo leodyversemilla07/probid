@@ -5,9 +5,9 @@ description = "Probe Philippine government procurement — search bids, track aw
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "click>=8.3",
-    "playwright>=1.58",
-    "rich>=15.0",
+    "click>=8.3,<9",
+    "playwright>=1.58,<2",
+    "rich>=15.0,<16",
 ]
 
 [project.scripts]
