@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import csv
 import json
+from pathlib import Path
 
 import click
 
@@ -111,12 +113,48 @@ def register_search_commands(cli: click.Group) -> None:
             geps.close()
 
     @cli.command()
-    def agencies():
-        """List all known procuring entities on PhilGEPS."""
-        display.info("Fetching agency list from PhilGEPS...")
+    @click.option("--pages", "-p", default=1, help="Agency result pages to fetch")
+    @click.option("--all", "fetch_all", is_flag=True, help="Fetch all agency pages")
+    @click.option("--output", "-o", type=click.Path(path_type=Path), help="Save results to CSV")
+    def agencies(pages: int, fetch_all: bool, output: Path | None):
+        """List procuring entities on PhilGEPS.
+
+        By default, fetches the first page only. Use --pages or --all for more.
+        """
+        pages_count = 10_000 if fetch_all else max(1, pages)
+        display.info(
+            "Fetching agency list from PhilGEPS..."
+            + (" all pages" if fetch_all else f" {pages_count} page(s)")
+        )
+
+        def on_progress(current_page: int, total_pages: int, total_rows: int) -> None:
+            display.info(f"Fetched page {current_page}/{total_pages} ({total_rows} rows)")
+
         try:
-            agency_list = geps.list_agencies()
-            display.show_agencies_list(agency_list)
+            agency_list = geps.list_agencies(
+                max_pages=pages_count,
+                progress_callback=on_progress if fetch_all or pages_count > 1 else None,
+            )
+
+            if output is not None:
+                output.parent.mkdir(parents=True, exist_ok=True)
+                with output.open("w", newline="", encoding="utf-8") as f:
+                    writer = csv.DictWriter(
+                        f,
+                        fieldnames=["rank", "name", "opportunity_count"],
+                    )
+                    writer.writeheader()
+                    writer.writerows(agency_list)
+                display.success(f"Saved {len(agency_list)} agencies to {output}")
+
+            if fetch_all and output is None and len(agency_list) > 100:
+                display.info(
+                    f"Showing first 100 of {len(agency_list)} agencies. "
+                    "Use --output agencies.csv to save the full list."
+                )
+                display.show_agencies_list(agency_list[:100])
+            else:
+                display.show_agencies_list(agency_list)
         except Exception as e:
             display.error(f"Failed to fetch agencies: {e}")
         finally:

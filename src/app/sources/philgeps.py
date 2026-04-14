@@ -11,6 +11,7 @@ import re
 import logging
 import time
 from functools import wraps
+from typing import Callable
 from urllib.parse import urljoin
 
 logger = logging.getLogger(__name__)
@@ -437,8 +438,19 @@ def search_awards(agency: str = "", max_pages: int = 1) -> list[dict]:
 
 
 @_retry(max_attempts=2)
-def list_agencies() -> list[str]:
-    """List all procuring entities from the View By Agency page."""
+def list_agencies(
+    max_pages: int = 1,
+    progress_callback: Callable[[int, int, int], None] | None = None,
+) -> list[dict]:
+    """List procuring entities from the View By Agency page.
+
+    Args:
+        max_pages: Number of agency result pages to parse.
+        progress_callback: Optional callback(current_page, total_pages, total_rows).
+
+    Returns:
+        Agency rows with rank, name, and opportunity_count.
+    """
     ctx = _get_context()
     page = ctx.new_page()
 
@@ -446,50 +458,102 @@ def list_agencies() -> list[str]:
         _rate_limit()
         page.goto(SEARCH_URL, wait_until="domcontentloaded", timeout=30000)
 
-        # Click "View By Agency"
-        agency_link = page.locator('a:has-text("View By Agency")')
+        agency_link = page.locator('a:has-text("View By Agency")').first
         agency_link.click()
         page.wait_for_load_state("domcontentloaded")
+        page.locator("#pgCtrlOpp_pageDropDownList").wait_for(state="visible", timeout=30000)
 
-        agencies = []
-        # Extract agency names from the list
-        links = page.locator('table a[href*="SplashBidNoticeAbstractUI"]').all()
-        for link in links:
-            name = link.inner_text().strip()
-            if name:
-                agencies.append(name)
-
-        # Also check for plain text entries in table cells
-        # Only match text that looks like an agency name (all caps, common suffixes)
-        agency_suffixes = (
-            'DEPARTMENT', 'OFFICE', 'BUREAU', 'COMMISSION', 'AUTHORITY',
-            'ADMINISTRATION', 'COUNCIL', 'BOARD', 'CORPORATION', 'AGENCY',
-            'MINISTRY', 'INSTITUTE', 'HOSPITAL', 'UNIVERSITY', 'SCHOOL',
-            'LGU', 'PROVINCE', 'CITY', 'MUNICIPALITY',
+        agencies: list[dict] = []
+        page_selector = page.locator("#pgCtrlOpp_pageDropDownList")
+        page_values = page.locator("#pgCtrlOpp_pageDropDownList option").evaluate_all(
+            "opts => opts.map(o => o.value)"
         )
-        cells = page.locator('table td').all()
-        for cell in cells:
-            text = cell.inner_text().strip()
-            if not text or len(text) < 10 or text.isdigit():
-                continue
-            # Skip navigation elements
-            if '<' in text or 'Page' in text:
-                continue
-            if text.startswith('View ') or text in ('View', 'View All', 'View Notice'):
-                continue
-            # Must look like an agency name
-            upper = text.upper()
-            is_agency = (
-                any(s in upper for s in agency_suffixes)
-                or text == text.upper()  # All caps = likely agency name
-            )
-            if is_agency and text not in agencies:
-                agencies.append(text)
+        total_pages = len(page_values)
+        pages_count = min(max(1, max_pages), total_pages)
 
-        return sorted(set(agencies))
+        for page_index in range(pages_count):
+            expected_first_rank = str(page_values[page_index])
+            if page_index > 0:
+                _select_agency_page(page, page_selector, expected_first_rank)
+
+            agencies.extend(_parse_agency_rows(page))
+            if progress_callback is not None:
+                progress_callback(page_index + 1, pages_count, len(agencies))
+
+        deduped: list[dict] = []
+        seen: set[tuple[int, str]] = set()
+        for agency in agencies:
+            key = (agency["rank"], agency["name"])
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(agency)
+
+        return deduped
 
     finally:
         page.close()
+
+
+def _select_agency_page(page, page_selector, expected_first_rank: str) -> None:
+    """Navigate to a specific agency results page by its first rank value."""
+    last_err = None
+    for _attempt in range(5):
+        try:
+            _rate_limit()
+            page_selector.select_option(value=expected_first_rank)
+            page.wait_for_function(
+                "expected => {"
+                "  const rows = Array.from(document.querySelectorAll('table tr'));"
+                "  for (const row of rows) {"
+                "    const cells = row.querySelectorAll('td');"
+                "    if (cells.length >= 3) {"
+                "      const rank = (cells[0].innerText || '').trim();"
+                "      const count = (cells[2].innerText || '').trim();"
+                "      if (/^\\d+$/.test(rank) && /^\\d+$/.test(count)) {"
+                "        return rank === expected;"
+                "      }"
+                "    }"
+                "  }"
+                "  return false;"
+                "}",
+                arg=expected_first_rank,
+                timeout=60000,
+            )
+            return
+        except Exception as e:
+            last_err = e
+            time.sleep(1)
+    raise RuntimeError(f"Failed to load agency page starting at rank {expected_first_rank}: {last_err}")
+
+
+def _parse_agency_rows(page) -> list[dict]:
+    """Parse visible rows from the agency table on the current page."""
+    agencies: list[dict] = []
+    rows = page.locator("table tr").all()
+    for row in rows:
+        cells = row.locator("td").all()
+        if len(cells) < 3:
+            continue
+
+        rank = cells[0].inner_text().strip()
+        name = cells[1].inner_text().strip()
+        opportunity_count = cells[2].inner_text().strip()
+
+        if not rank.isdigit():
+            continue
+        if not name or name.lower() == "agency":
+            continue
+        if not opportunity_count.isdigit():
+            continue
+
+        agencies.append({
+            "rank": int(rank),
+            "name": name,
+            "opportunity_count": int(opportunity_count),
+        })
+
+    return agencies
 
 
 def _normalize_date(date_str: str) -> str:

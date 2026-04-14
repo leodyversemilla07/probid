@@ -315,14 +315,32 @@ def show_network(result: dict, supplier_name: str) -> None:
     ))
 
 
-def show_agencies_list(agency_list: list[str]) -> None:
-    """Display a list of agencies."""
+def show_agencies_list(agency_list: list[dict]) -> None:
+    """Display agency rows from the View By Agency page."""
     if not agency_list:
         error("No agencies found (site may be blocking)")
         return
 
-    from rich.columns import Columns
-    console.print(Columns(agency_list, column_first=True, padding=(0, 2)))
+    table = Table(
+        title="PhilGEPS Agencies",
+        box=box.SQUARE,
+        show_lines=True,
+        title_style="bold cyan",
+        header_style="bold white on rgb(40,40,40)",
+        row_styles=["", "dim"],
+    )
+    table.add_column("#", style="dim", width=4, justify="right")
+    table.add_column("Agency", style="cyan", min_width=40)
+    table.add_column("Open Opportunities", width=18, justify="right")
+
+    for agency in agency_list:
+        table.add_row(
+            str(agency.get("rank", "")),
+            agency.get("name", ""),
+            str(agency.get("opportunity_count", 0)),
+        )
+
+    console.print(table)
     success(f"{len(agency_list)} agencies found")
 
 
