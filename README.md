@@ -52,14 +52,15 @@ Use `--cache-only` on search/awards to query the local SQLite cache without scra
 ## Architecture
 
 ```
-probid/
-  sources/
-    philgeps.py    # Playwright scraper for PhilGEPS
-  cache.py         # SQLite-backed local cache
-  analyze.py       # Overpricing, repeat awardees, contract splitting detection
-  models.py        # Data classes (reference types)
-  display.py       # Rich terminal output
-  cli.py           # Click CLI entry point
+src/
+  probid/
+    sources/
+      philgeps.py    # Playwright scraper for PhilGEPS
+    cache.py         # SQLite-backed local cache
+    analyze.py       # Overpricing, repeat awardees, contract splitting detection
+    models.py        # Data classes (reference types)
+    display.py       # Rich terminal output
+    cli.py           # Click CLI entry point
 ```
 
 Data is cached at `~/.probid/probid.db`. Override with `PROBID_CACHE_DIR` env var.
