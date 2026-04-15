@@ -373,16 +373,15 @@ def get_notice_detail(ref_id: str) -> dict:
 def search_awards(agency: str = "", max_pages: int = 1) -> list[dict]:
     """Fetch recent award notices.
 
-    WARNING: This function is untested — the PhilGEPS Recent Awards page
-    frequently times out. Column structure was inferred from page inspection
-    and may not match the actual table. Verify with live data before relying on it.
+    WARNING: PhilGEPS frequently changes markup. This parser supports multiple
+    common column layouts and paginates when a "Next" control is available.
 
     Args:
-        agency: Filter by agency name (optional, not all agencies supported)
-        max_pages: Number of pages to scrape
+        agency: Optional agency filter.
+        max_pages: Number of pages to scrape.
 
     Returns:
-        List of award dicts
+        List of award dicts.
     """
     ctx = _get_context()
     page = ctx.new_page()
@@ -392,49 +391,162 @@ def search_awards(agency: str = "", max_pages: int = 1) -> list[dict]:
         page.goto(AWARDS_URL, wait_until="domcontentloaded", timeout=60000)
         page.locator('table tr td').first.wait_for(state="visible", timeout=15000)
 
-        awards = []
-        rows = page.locator('table tr').all()
+        pages_count = max(1, max_pages)
+        agency_filter = agency.lower().strip() if agency else ""
+        awards: list[dict] = []
 
-        for row in rows:
-            cells = row.locator('td').all()
-            if len(cells) < 4:
+        for page_num in range(1, pages_count + 1):
+            page_awards = _parse_award_rows(page, fallback_agency=agency)
+            if agency_filter:
+                page_awards = [
+                    a for a in page_awards
+                    if agency_filter in a.get("agency", "").lower()
+                ]
+            awards.extend(page_awards)
+
+            if page_num >= pages_count:
+                break
+            if not _go_to_next_results_page(page):
+                break
+
+        # De-duplicate across pages/retries
+        deduped: list[dict] = []
+        seen: set[tuple] = set()
+        for award in awards:
+            key = (
+                award.get("ref_no", ""),
+                award.get("project_title", ""),
+                award.get("agency", ""),
+                award.get("supplier", ""),
+                award.get("award_date", ""),
+                float(award.get("award_amount", 0) or 0),
+            )
+            if key in seen:
                 continue
+            seen.add(key)
+            deduped.append(award)
 
-            first_text = cells[0].inner_text().strip()
-            if not first_text.isdigit():
-                continue
-
-            # Award rows typically have: number | date | title | supplier | amount
-            award = {
-                "ref_no": "",
-                "project_title": cells[2].inner_text().strip() if len(cells) > 2 else "",
-                "agency": agency,
-                "supplier": cells[3].inner_text().strip() if len(cells) > 3 else "",
-                "award_amount": _parse_amount(
-                    cells[4].inner_text().strip() if len(cells) > 4 else "0"
-                ),
-                "award_date": _normalize_date(cells[1].inner_text().strip()),
-                "approved_budget": 0,
-                "bid_type": "",
-                "url": "",
-            }
-
-            # Try to extract ref from link
-            try:
-                link = cells[2].locator('a').first
-                href = link.get_attribute('href') or ""
-                ref_match = re.search(r'refID=(\d+)', href)
-                if ref_match:
-                    award["ref_no"] = ref_match.group(1)
-            except Exception:
-                pass
-
-            awards.append(award)
-
-        return awards
+        return deduped
 
     finally:
         page.close()
+
+
+def _parse_award_rows(page, fallback_agency: str = "") -> list[dict]:
+    """Parse visible rows from the recent awards table.
+
+    Supports both common layouts observed in PhilGEPS:
+    - number | date | title | supplier | amount
+    - number | date | title | agency | supplier | amount
+    """
+    awards: list[dict] = []
+    rows = page.locator("table tr").all()
+
+    for row in rows:
+        cells = row.locator("td").all()
+        if len(cells) < 5:
+            continue
+
+        first_text = cells[0].inner_text().strip()
+        if not first_text.isdigit():
+            continue
+
+        project_title = cells[2].inner_text().strip() if len(cells) > 2 else ""
+        award_date = _normalize_date(cells[1].inner_text().strip()) if len(cells) > 1 else ""
+
+        # Layout A: number|date|title|supplier|amount
+        # Layout B: number|date|title|agency|supplier|amount
+        if len(cells) >= 6:
+            parsed_agency = cells[3].inner_text().strip()
+            supplier = cells[4].inner_text().strip()
+            amount_text = cells[5].inner_text().strip()
+        else:
+            parsed_agency = ""
+            supplier = cells[3].inner_text().strip()
+            amount_text = cells[4].inner_text().strip()
+
+        award = {
+            "ref_no": "",
+            "project_title": project_title,
+            "agency": parsed_agency or fallback_agency or "UNKNOWN",
+            "supplier": supplier,
+            "award_amount": _parse_amount(amount_text),
+            "award_date": award_date,
+            "approved_budget": 0,
+            "bid_type": "",
+            "url": "",
+        }
+
+        # Try to extract ref and URL from title link
+        try:
+            link = cells[2].locator("a").first
+            href = link.get_attribute("href") or ""
+            if href:
+                award["url"] = urljoin(page.url, href)
+            ref_match = re.search(r"refID=(\d+)", href)
+            if ref_match:
+                award["ref_no"] = ref_match.group(1)
+        except Exception:
+            pass
+
+        awards.append(award)
+
+    return awards
+
+
+def _first_results_row_signature(page) -> str:
+    """Return a compact signature for the first data row in the current table."""
+    rows = page.locator("table tr").all()
+    for row in rows:
+        cells = row.locator("td").all()
+        if len(cells) < 3:
+            continue
+        first_text = cells[0].inner_text().strip()
+        if not first_text.isdigit():
+            continue
+        c1 = cells[1].inner_text().strip() if len(cells) > 1 else ""
+        c2 = cells[2].inner_text().strip() if len(cells) > 2 else ""
+        return f"{first_text}|{c1}|{c2}"
+    return ""
+
+
+def _go_to_next_results_page(page) -> bool:
+    """Click a likely pagination 'Next' control and verify the page changed."""
+    next_selectors = [
+        'a:has-text("<Next>")',
+        'a:has-text("Next")',
+        'a[title="Next"]',
+        'a[aria-label="Next"]',
+    ]
+
+    before = _first_results_row_signature(page)
+    saw_next_control = False
+    errors: list[str] = []
+
+    for selector in next_selectors:
+        locator = page.locator(selector).first
+        if locator.count() == 0:
+            continue
+
+        saw_next_control = True
+        try:
+            _rate_limit()
+            locator.click()
+            page.wait_for_load_state("domcontentloaded")
+            page.wait_for_timeout(500)
+            after = _first_results_row_signature(page)
+            if after and after != before:
+                return True
+        except Exception as e:
+            errors.append(f"{selector}: {e}")
+
+    if saw_next_control and errors:
+        raise RuntimeError(
+            "Found pagination controls but failed to navigate to next awards page: "
+            + " | ".join(errors)
+        )
+
+    return False
 
 
 @_retry(max_attempts=2)

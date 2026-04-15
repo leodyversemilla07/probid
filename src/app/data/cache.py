@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
@@ -21,22 +22,16 @@ def get_cache_dir() -> Path:
     return cache_dir
 
 
-_tables_initialized = False
-
-
 def _get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     """Get a SQLite connection, creating tables if needed. Internal use — prefer connection()."""
-    global _tables_initialized
     if db_path is None:
         db_path = str(get_cache_dir() / DEFAULT_DB_NAME)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
-    # Ensure schema exists for this specific database path. The old global-only
-    # gate breaks with multiple db files (e.g., tests using temp DBs).
+    # Ensure schema exists for this specific database path.
     _ensure_tables(conn)
-    _tables_initialized = True
     return conn
 
 
@@ -156,8 +151,30 @@ def search_notices(
 
 # ── Award CRUD ──
 
+def _stable_award_ref(award: dict) -> str:
+    """Return a stable ref_no for awards even when PhilGEPS does not expose refID."""
+    ref_no = str(award.get("ref_no", "")).strip()
+    if ref_no:
+        return ref_no
+
+    fingerprint = "|".join([
+        str(award.get("project_title", "")).strip().lower(),
+        str(award.get("agency", "")).strip().lower(),
+        str(award.get("supplier", "")).strip().lower(),
+        str(award.get("award_date", "")).strip(),
+        str(award.get("award_amount", 0)),
+    ])
+    digest = hashlib.sha1(fingerprint.encode("utf-8")).hexdigest()[:16]
+    return f"NOREF-{digest}"
+
+
 def upsert_award(conn: sqlite3.Connection, award: dict) -> None:
     """Insert or update an award record."""
+    ref_no = _stable_award_ref(award)
+    project_title = str(award.get("project_title", "")).strip() or "(Untitled Project)"
+    agency = str(award.get("agency", "")).strip() or "UNKNOWN"
+    supplier = str(award.get("supplier", "")).strip() or "UNKNOWN SUPPLIER"
+
     conn.execute("""
         INSERT INTO awards (ref_no, project_title, agency, supplier,
             award_amount, award_date, approved_budget, bid_type, url, scraped_at)
@@ -168,8 +185,8 @@ def upsert_award(conn: sqlite3.Connection, award: dict) -> None:
             approved_budget=excluded.approved_budget, bid_type=excluded.bid_type,
             url=excluded.url, scraped_at=excluded.scraped_at
     """, (
-        award["ref_no"], award["project_title"], award["agency"],
-        award["supplier"], award.get("award_amount", 0),
+        ref_no, project_title, agency,
+        supplier, award.get("award_amount", 0),
         award.get("award_date", ""), award.get("approved_budget", 0),
         award.get("bid_type", ""), award.get("url", ""),
         datetime.now().isoformat(),

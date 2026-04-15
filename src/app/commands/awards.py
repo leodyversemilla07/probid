@@ -16,14 +16,15 @@ def register_award_commands(cli: click.Group) -> None:
     @click.option("--agency", "-a", help="Filter by agency name")
     @click.option("--supplier", "-s", help="Filter by supplier name")
     @click.option("--limit", "-n", default=50, help="Max results")
+    @click.option("--pages", "-p", default=1, help="Award result pages to fetch")
     @click.option("--cache-only", is_flag=True, help="Only search local cache")
-    def awards(agency: str, supplier: str, limit: int, cache_only: bool):
+    def awards(agency: str, supplier: str, limit: int, pages: int, cache_only: bool):
         """List recent contract awards."""
         with cache.connection() as conn:
             if not cache_only and not supplier:
                 display.info("Fetching recent awards from PhilGEPS...")
                 try:
-                    geps_awards = geps.search_awards(agency=agency)
+                    geps_awards = geps.search_awards(agency=agency, max_pages=max(1, pages))
                     for award in geps_awards:
                         cache.upsert_award(conn, award)
                 except Exception as e:
