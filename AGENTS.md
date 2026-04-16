@@ -7,7 +7,7 @@ This file is the single source of instructions for coding agents working in this
 ## Project overview
 
 - Project: probid
-- Purpose: Probe Philippine government procurement with local-first, explainable heuristics
+- Purpose: Provide a minimal terminal probing agent harness for Philippine government procurement with local-first, explainable heuristics
 - Stack: Python, Click CLI, Playwright, Rich, SQLite
 - Data source: PhilGEPS notices site
 - Legal baseline: RA 12009 + IRR
@@ -17,18 +17,18 @@ This file is the single source of instructions for coding agents working in this
 - Install deps: `uv sync`
 - Install browser (optional): `uv sync --all-extras && playwright install chromium`
 - Run CLI help: `probid --help`
-- Run probe contract tests: `PYTHONPATH=src python3 -m unittest tests/test_probe_output_contract.py -v`
+- Run package test suite: `python3 scripts/run_tests.py`
+- Run package test suite via Make: `make test`
+- Run probe contract test directly: `PYTHONPATH=packages/probing-agent/src:packages/agent/src:packages/ai/src:packages/tui/src:packages/mom/src:packages/pods/src python3 -m unittest packages/probing-agent/tests/test_probe_output_contract.py -v`
 
 ## Common run commands
 
 - Probe (summary-first): `probid probe "laptop"`
-- Agent shell: `probid` (default interactive)
-- Agent shell alias: `probid agent`
-- One-shot agent query (text): `probid -q "probe laptop"`
-- One-shot agent query (JSON): `probid -q "probe laptop" --json-output`
-- Agent session logging is disabled by default. Enable with `PROBID_AGENT_LOG_SESSION=1`.
-- Local auth file for `/login` and `/logout`: `~/.probid/auth.json` (override with `PROBID_AUTH_FILE`).
-- GitHub Copilot aliases supported in REPL auth: `copilot`, `github copilot`, `github-copilot`.
+- Agent harness shell: `probid` (default interactive)
+- Agent harness shell alias: `probid agent`
+- One-shot harness query (text): `probid -q "probe laptop"`
+- One-shot harness query (JSON): `probid -q "probe laptop" --json-output`
+- Harness session logging is disabled by default. Enable with `PROBID_AGENT_LOG_SESSION=1`.
 - Probe with evidence/caveats: `probid probe "laptop" --why`
 - Probe JSON output: `probid probe "laptop" --json`
 - Probe confidence filter: `probid probe "laptop" --min-confidence medium`
@@ -45,12 +45,14 @@ This file is the single source of instructions for coding agents working in this
 
 ## Architecture
 
-- CLI entrypoint: `src/app/cli.py`
-- Commands: `src/app/commands/`
-- Scraper source connector: `src/app/sources/philgeps.py`
-- Cache and models: `src/app/data/`
-- Heuristics: `src/app/analysis/`
-- Terminal rendering: `src/app/ui/display.py`
+- CLI entrypoint: `packages/probing-agent/src/probid_probing_agent/cli.py`
+- CLI helpers and commands: `packages/probing-agent/src/probid_probing_agent/cli/`
+- Probing agent runtime: `packages/probing-agent/src/probid_probing_agent/core/`
+- Interactive harness mode: `packages/probing-agent/src/probid_probing_agent/modes/interactive/`
+- Package-local tests: `packages/probing-agent/tests/`
+- Agent core package: `packages/agent/src/probid_agent/`
+- AI package: `packages/ai/src/probid_ai/`
+- Terminal UI package: `packages/tui/src/probid_tui/`
 
 ## Coding rules
 

@@ -15,11 +15,19 @@ browser = [
 ]
 
 [project.scripts]
-probid = "app.cli:cli"
+probid = "probid_probing_agent.cli:cli"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = [
+    "packages/ai/src",
+    "packages/agent/src",
+    "packages/probing-agent/src",
+    "packages/tui/src",
+    "packages/web-ui/src",
+    "packages/mom/src",
+    "packages/pods/src",
+]

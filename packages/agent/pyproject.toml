@@ -1,0 +1,8 @@
+[project]
+name = "probid-agent-core"
+version = "0.1.0"
+description = "Core agent runtime primitives for probid"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]

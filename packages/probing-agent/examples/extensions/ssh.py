@@ -1,0 +1,1 @@
+"""Example SSH extension placeholder."""
