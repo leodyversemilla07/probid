@@ -69,6 +69,16 @@ class AgentToolAdapter:
     def split(self, agency: str, gap_days: int = 30) -> list[dict[str, Any]]:
         return analysis.detect_split_contracts(self.conn, agency=agency, max_gap_days=gap_days)
 
+    def network(self, supplier_name: str) -> dict[str, Any]:
+        return analysis.network_analysis(self.conn, supplier_name)
+
+    def overprice(self, category: str = "", threshold: int = 200) -> dict[str, Any]:
+        return {
+            "category": category,
+            "threshold": threshold,
+            "results": analysis.find_price_anomalies(self.conn, category=category),
+        }
+
 
 def build_tool_registry(conn) -> ToolRegistry:
     adapter = AgentToolAdapter(conn)
@@ -99,10 +109,22 @@ def build_tool_registry(conn) -> ToolRegistry:
                 handler=adapter.probe,
             ),
             ToolSpec(
+                name="overprice",
+                description="Compare cached budget levels for possible overpricing patterns.",
+                parameters=("category", "threshold"),
+                handler=adapter.overprice,
+            ),
+            ToolSpec(
                 name="repeat",
                 description="Find repeat awardees above a minimum count threshold.",
                 parameters=("min_count",),
                 handler=adapter.repeat,
+            ),
+            ToolSpec(
+                name="network",
+                description="Inspect a supplier's competitor and agency network from cached awards.",
+                parameters=("supplier_name",),
+                handler=adapter.network,
             ),
             ToolSpec(
                 name="search",

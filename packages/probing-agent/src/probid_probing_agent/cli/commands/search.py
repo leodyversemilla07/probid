@@ -115,8 +115,17 @@ def register_search_commands(cli: click.Group) -> None:
                     for notice in notices:
                         cache.upsert_notice(conn, notice)
                 except Exception as e:
-                    display.error(f"Live fetch failed: {e}")
-                    display.info("Continuing with local cache...")
+                    display.error(f"Live notice fetch failed: {e}")
+                    display.info("Continuing with local cache for notices...")
+
+                try:
+                    display.info("Refreshing recent awards from PhilGEPS...")
+                    awards = geps.search_awards(agency=agency, max_pages=pages_count)
+                    for award in awards:
+                        cache.upsert_award(conn, award)
+                except Exception as e:
+                    display.error(f"Live awards fetch failed: {e}")
+                    display.info("Continuing with local cache for awards...")
                 finally:
                     geps.close()
 

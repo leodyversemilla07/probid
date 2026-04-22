@@ -102,6 +102,82 @@ def _build_conn() -> sqlite3.Connection:
 
 
 class ProbeOutputContractTests(unittest.TestCase):
+    def test_probe_scopes_repeat_and_dependence_findings_to_query(self):
+        conn = _build_conn()
+        conn.executemany(
+            """
+            INSERT INTO awards (
+                ref_no, project_title, agency, supplier, award_amount, award_date,
+                approved_budget, bid_type, url, scraped_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    f"B{i}",
+                    f"Road repair lot {i}",
+                    "DPWH",
+                    "ROADRUNNER INC",
+                    450_000,
+                    f"2026-02-0{i}",
+                    500_000,
+                    "",
+                    "",
+                    "2026-02-01T00:00:00",
+                )
+                for i in range(1, 4)
+            ],
+        )
+        conn.commit()
+
+        result = analyze_probe_findings(conn, query="laptop", pages_scanned=1)
+        summaries = [finding["summary"] for finding in result["findings"]]
+
+        self.assertTrue(any("ACME CORP" in summary for summary in summaries))
+        self.assertFalse(any("ROADRUNNER INC" in summary for summary in summaries))
+
+    def test_probe_scopes_split_findings_to_query(self):
+        conn = _build_conn()
+        conn.executemany(
+            """
+            INSERT INTO awards (
+                ref_no, project_title, agency, supplier, award_amount, award_date,
+                approved_budget, bid_type, url, scraped_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    "S1",
+                    "Road repair phase 1",
+                    "DPWH",
+                    "BUILDCO",
+                    480_000,
+                    "2026-03-01",
+                    0,
+                    "",
+                    "",
+                    "2026-03-01T00:00:00",
+                ),
+                (
+                    "S2",
+                    "Road repair phase 2",
+                    "DPWH",
+                    "BUILDCO",
+                    490_000,
+                    "2026-03-10",
+                    0,
+                    "",
+                    "",
+                    "2026-03-10T00:00:00",
+                ),
+            ],
+        )
+        conn.commit()
+
+        result = analyze_probe_findings(conn, query="laptop", pages_scanned=1)
+        split_findings = [finding for finding in result["findings"] if finding["reason_code"] == "R3"]
+
+        self.assertEqual(split_findings, [])
+
     def test_probe_output_has_contract_keys(self):
         conn = _build_conn()
         result = analyze_probe_findings(conn, query="laptop", pages_scanned=1)

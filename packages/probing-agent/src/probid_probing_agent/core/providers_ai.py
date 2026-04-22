@@ -3,15 +3,46 @@
 from __future__ import annotations
 
 import json
+import os
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
-from probid_ai import ChatCompletionRequest, Message, OpenAIClient
+from probid_ai import ChatCompletionRequest, Message
+from probid_ai.openai_client import OpenAIClient
+from probid_ai.anthropic_client import AnthropicClient
+from probid_agent.proxy import execute_plan_steps
 from probid_agent.types import ExecutionPlan, ToolTraceItem
+from probid_probing_agent.core.data import cache
 from probid_probing_agent.core.model_resolver import resolve_default_model, resolve_default_temperature
+from probid_probing_agent.core.planner import normalize_plan, supported_tools
+from probid_probing_agent.core.tools import build_tool_registry
+
+# Models that use Anthropic-compatible API (via OpenCode Zen)
+ANTHROPIC_COMPATIBLE_MODELS = {
+    "minimax-m2.5-free",
+    "minimax-m2.5",
+    "minimax-m2",
+    "minimax-m2.1",
+    "big-pickle",
+}
 
 if TYPE_CHECKING:
     from probid_agent.types import ProviderRuntimeProtocol
+
+
+def _get_client_for_model(model: str) -> Union[OpenAIClient, AnthropicClient]:
+    """Get the appropriate client for a model."""
+    model_lower = model.lower().strip()
+    
+    # Check if model uses Anthropic-compatible API
+    if model_lower in ANTHROPIC_COMPATIBLE_MODELS:
+        # Use Anthropic client with OpenCode Zen base URL
+        base_url = os.environ.get("OPENCODE_BASE_URL", "https://opencode.ai/zen")
+        return AnthropicClient(base_url=base_url, provider_name="opencode")
+    
+    # Default to OpenAI client
+    base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    return OpenAIClient(base_url=base_url, provider_name="openai")
 
 
 def _build_system_prompt() -> str:
@@ -38,6 +69,12 @@ Always respond with a valid JSON plan containing:
 - query: the user's search term
 - steps: array of tool calls with tool name, args, and cli_equivalent
 
+Rules:
+- Use only these tools: probe, search, detail, awards, supplier, agency, repeat, split, network, overprice.
+- Prefer multi-step investigative plans when the user asks to probe an agency or supplier.
+- End investigative plans with the most decision-useful step, usually probe, supplier, agency, network, or overprice.
+- Keep every step consistent with an actual probid CLI command.
+
 If unsure, use probe with the user's query.
 """
 
@@ -49,13 +86,14 @@ class AIModelProvider:
         self,
         model: str | None = None,
         temperature: float | None = None,
-        client: OpenAIClient | None = None,
+        client: Union[OpenAIClient, AnthropicClient] | None = None,
     ):
         self.model = model or resolve_default_model()
         self.temperature = (
             resolve_default_temperature() if temperature is None else temperature
         )
-        self.client = client or OpenAIClient()
+        # Auto-select client based on model if not provided
+        self.client = client or _get_client_for_model(self.model)
         self.system_prompt = _build_system_prompt()
 
     def handle(self, user_input: str, runtime: "ProviderRuntimeProtocol") -> dict[str, Any]:
@@ -73,7 +111,7 @@ class AIModelProvider:
 
         response = self.client.chat_completions(request)
         if not response.choices:
-            return _error_response(runtime, user_input, "LLM response had no choices", llm_response="")
+            raise ValueError("LLM response had no choices")
 
         llm_content = response.choices[0].message.content
 
@@ -87,15 +125,10 @@ class AIModelProvider:
                 raise ValueError("Plan must have 'steps' field")
             if not isinstance(plan.get("steps"), list):
                 raise ValueError("Plan 'steps' must be a list")
+            plan = normalize_plan(plan)
             runtime._validate_plan(plan)
-        except json.JSONDecodeError as e:
-            return _error_response(runtime, user_input, f"Failed to parse LLM response: {e}", llm_content)
-        except ValueError as e:
-            return _error_response(runtime, user_input, str(e), llm_content)
-
-        from probid_agent.proxy import execute_plan_steps
-        from probid_probing_agent.core.tools import build_tool_registry
-        from probid_probing_agent.core.data import cache
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Failed to parse LLM response: {exc}") from exc
 
         with cache.connection(db_path=runtime.db_path) as conn:
             registry = build_tool_registry(conn)
@@ -151,6 +184,10 @@ def _parse_plan_json(text: str) -> dict[str, Any]:
                 continue
 
     raise json.JSONDecodeError("no JSON object found", raw, 0)
+
+
+def supported_ai_tools() -> list[str]:
+    return sorted(supported_tools())
 
 
 def handle_ai(user_input: str, runtime: "ProviderRuntimeProtocol") -> dict[str, Any]:

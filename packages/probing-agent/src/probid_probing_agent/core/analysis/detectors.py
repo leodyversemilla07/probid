@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -69,6 +69,7 @@ def detect_split_contracts(
     conn: sqlite3.Connection,
     agency: str,
     max_gap_days: int = 30,
+    query: str = "",
 ) -> list[dict]:
     """Detect potential contract splitting.
 
@@ -83,14 +84,18 @@ def detect_split_contracts(
         2_000_000,
     ]
 
-    rows = conn.execute(
-        """
+    sql = """
         SELECT * FROM awards
         WHERE agency LIKE ?
-        ORDER BY award_date, project_title
-    """,
-        (f"%{agency}%",),
-    ).fetchall()
+    """
+    params: list[Any] = [f"%{agency}%"]
+    if query:
+        sql += " AND (project_title LIKE ? OR supplier LIKE ? OR ref_no LIKE ?)"
+        q = f"%{query}%"
+        params.extend([q, q, q])
+
+    sql += " ORDER BY award_date, project_title"
+    rows = conn.execute(sql, params).fetchall()
 
     awards = [dict(r) for r in rows]
     suspicious = []
@@ -314,26 +319,51 @@ def analyze_probe_findings(
             )
         )
 
-    # R1: repeat supplier concentration
-    repeat_rows = find_repeat_awardees(conn, min_count=repeat_min_count)
+    # R1: repeat supplier concentration (scoped to current probe awards)
+    scoped_repeat: dict[str, dict[str, Any]] = {}
+    for award in awards:
+        supplier = str(award.get("supplier", "")).strip()
+        if not supplier:
+            continue
+        bucket = scoped_repeat.setdefault(
+            supplier.casefold(),
+            {
+                "supplier": supplier,
+                "award_count": 0,
+                "agencies": set(),
+                "total_value": 0,
+                "refs": [],
+            },
+        )
+        bucket["award_count"] += 1
+        if award.get("agency"):
+            bucket["agencies"].add(award["agency"])
+        bucket["total_value"] += award.get("award_amount", 0) or 0
+        ref_no = award.get("ref_no")
+        if ref_no and ref_no not in bucket["refs"] and len(bucket["refs"]) < 5:
+            bucket["refs"].append(ref_no)
+
+    repeat_rows = sorted(
+        (
+            {
+                "supplier": row["supplier"],
+                "award_count": row["award_count"],
+                "agency_count": len(row["agencies"]),
+                "total_value": row["total_value"],
+                "refs": row["refs"],
+            }
+            for row in scoped_repeat.values()
+            if row["award_count"] >= repeat_min_count
+        ),
+        key=lambda row: (row["award_count"], row["total_value"]),
+        reverse=True,
+    )
     for row in repeat_rows[:5]:
         supplier = row.get("supplier", "")
         award_count = int(row.get("award_count", 0) or 0)
         agency_count = int(row.get("agency_count", 0) or 0)
         confidence = "high" if award_count >= 6 and agency_count >= 2 else "medium"
         severity = "high" if award_count >= 8 else "medium"
-        sample_refs = [
-            r["ref_no"]
-            for r in conn.execute(
-                """
-                SELECT ref_no FROM awards
-                WHERE supplier LIKE ?
-                ORDER BY award_date DESC
-                LIMIT 5
-            """,
-                (f"%{supplier}%",),
-            ).fetchall()
-        ]
         findings.append(
             _build_finding(
                 "R1",
@@ -348,7 +378,7 @@ def analyze_probe_findings(
                     "total_value": row.get("total_value", 0) or 0,
                 },
                 "High frequency can be legitimate for specialized suppliers; verify market depth.",
-                refs=sample_refs,
+                refs=row.get("refs", []),
                 follow_up=[
                     f"probid supplier \"{supplier}\"",
                     f"probid network \"{supplier}\"",
@@ -417,10 +447,15 @@ def analyze_probe_findings(
         )
 
     # R3: potential split contracts
-    agencies_for_split = [agency] if agency else [r["agency"] for r in conn.execute("SELECT DISTINCT agency FROM awards WHERE agency != '' LIMIT 15").fetchall()]
+    agencies_for_split = [agency] if agency else list({a.get("agency", "") for a in awards if a.get("agency", "")})[:15]
     split_hits = 0
     for agency_name in agencies_for_split:
-        split_results = detect_split_contracts(conn, agency_name, max_gap_days=split_gap_days)
+        split_results = detect_split_contracts(
+            conn,
+            agency_name,
+            max_gap_days=split_gap_days,
+            query=query,
+        )
         for split in split_results[:2]:
             split_hits += 1
             contract_count = len(split.get("contracts", []))
@@ -520,22 +555,21 @@ def analyze_probe_findings(
         )
 
     # R6: single-agency dependence risk (supplier)
-    dependence_rows = conn.execute(
-        """
-        SELECT supplier,
-               COUNT(*) AS award_count,
-               COUNT(DISTINCT agency) AS agency_count,
-               SUM(award_amount) AS total_value,
-               MIN(agency) AS agency
-        FROM awards
-        WHERE supplier != ''
-        GROUP BY LOWER(TRIM(supplier))
-        HAVING award_count >= 3 AND agency_count = 1
-        ORDER BY total_value DESC
-        LIMIT 5
-    """
-    ).fetchall()
-    for row in dependence_rows:
+    scoped_dependence = sorted(
+        (
+            {
+                "supplier": row["supplier"],
+                "agency": next(iter(row["agencies"])),
+                "award_count": row["award_count"],
+                "total_value": row["total_value"],
+            }
+            for row in scoped_repeat.values()
+            if row["award_count"] >= 3 and len(row["agencies"]) == 1
+        ),
+        key=lambda row: row["total_value"],
+        reverse=True,
+    )[:5]
+    for row in scoped_dependence:
         findings.append(
             _build_finding(
                 "R6",
@@ -595,7 +629,7 @@ def analyze_probe_findings(
             "query": query,
             "agency": agency,
             "pages_scanned": pages_scanned,
-            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             "min_confidence": min_confidence,
             "max_findings": max_findings,
         },

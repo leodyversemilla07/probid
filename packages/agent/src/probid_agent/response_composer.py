@@ -74,6 +74,7 @@ class BaseResponseComposer:
             "intent": intent,
             "query": query,
             "payload": payload,
+            "tool_trace": tool_trace,
         }
 
         if policy is not None:

@@ -45,6 +45,8 @@ def run_plan_execution(
             cli_equivalent=step.get("cli_equivalent", ""),
             event_sink=event_sink,
         )
+        if isinstance(trace, dict) and "payload" not in trace:
+            trace["payload"] = payload
         tool_trace.append(trace)
 
     return {"payload": payload, "tool_trace": tool_trace}

@@ -49,6 +49,7 @@ class ToolRegistry:
                 "cli_equivalent": cli_equivalent,
                 "status": "success",
                 "result_type": type(payload).__name__,
+                "payload": payload,
             }
             if event_sink is not None:
                 event_sink(

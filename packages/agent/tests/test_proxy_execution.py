@@ -27,6 +27,7 @@ class ProxyExecutionTests(unittest.TestCase):
 
         self.assertEqual(result["payload"]["ok"], True)
         self.assertEqual(result["tool_trace"][0]["tool"], "probe")
+        self.assertEqual(result["tool_trace"][0]["payload"]["ok"], True)
         self.assertEqual(registry.calls[0][0], "probe")
 
 

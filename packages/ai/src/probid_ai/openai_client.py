@@ -8,7 +8,6 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 from probid_ai.client import APIError, BaseAIClient, getenv_or_raise
-from probid_ai.env_api_keys import get_env_api_key
 from probid_ai.types import (
     ChatCompletionChoice,
     ChatCompletionRequest,
@@ -21,10 +20,17 @@ from probid_ai.types import (
 class OpenAIClient(BaseAIClient):
     """OpenAI-compatible API client (works with OpenAI, Anthropic via adapter, etc.)."""
 
+    def __init__(self, api_key: str | None = None, base_url: str | None = None, provider_name: str = "openai"):
+        self._provider_name = provider_name
+        super().__init__(api_key, base_url)
+
     def _default_api_key(self) -> str:
-        key = get_env_api_key("openai")
-        if key:
-            return key
+        # Try provider-specific key, then generic fallback
+        provider_key = _get_provider_api_key(self._provider_name)
+        if provider_key:
+            return provider_key
+        if self._provider_name == "opencode":
+            return getenv_or_raise("OPENCODE_API_KEY")
         return getenv_or_raise("OPENAI_API_KEY")
 
     def _default_base_url(self) -> str:
@@ -116,3 +122,31 @@ class OpenAIClient(BaseAIClient):
 
 
 import os
+
+
+# Try to use probid auth storage, fall back to env vars
+try:
+    from probid_probing_agent.core.auth_storage import get_api_key as _get_probid_api_key
+except ImportError:
+    _get_probid_api_key = None
+
+
+def _get_provider_api_key(provider: str = "openai") -> str:
+    """Get API key for a provider, checking auth storage first."""
+    # Try probid auth storage first (if available)
+    if _get_probid_api_key:
+        key = _get_probid_api_key(provider)
+        if key:
+            return key
+    
+    # Fall back to env vars
+    env_map = {
+        "opencode": "OPENCODE_API_KEY",
+        "openai": "OPENAI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "google": "GEMINI_API_KEY",
+    }
+    env_var = env_map.get(provider)
+    if env_var:
+        return os.environ.get(env_var, "")
+    return os.environ.get("OPENAI_API_KEY", "")

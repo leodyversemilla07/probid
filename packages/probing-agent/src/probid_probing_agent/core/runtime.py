@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +17,10 @@ from probid_probing_agent.core.provider_registry import get_provider, list_provi
 from probid_probing_agent.core.response_builder import ResponseBuilder
 from probid_probing_agent.core.session import AgentSessionLogger, ProbidAgentSession
 from probid_probing_agent.core.session_manager import ProbidSessionManager
+
+
+class InvalidProviderError(ValueError):
+    """Raised when a requested provider name is not registered."""
 
 
 class ProbidAgentRuntime(BaseAgentRuntime):
@@ -41,7 +47,7 @@ class ProbidAgentRuntime(BaseAgentRuntime):
         selected = get_provider(provider)
         if selected is None:
             available = ", ".join(list_providers()) or "none"
-            raise ValueError(f"Unknown provider '{provider}'. Available providers: {available}")
+            raise InvalidProviderError(f"Unknown provider '{provider}'. Available providers: {available}")
 
         self.provider_name = provider
         self.provider = selected
@@ -93,6 +99,32 @@ class ProbidAgentRuntime(BaseAgentRuntime):
             response["turn_id"] = logged_turn_id
 
         return response
+
+    def record_export_artifact(
+        self,
+        *,
+        result: dict[str, Any],
+        output_text: str,
+        output_path: str | None = None,
+    ) -> None:
+        export = result.get("export")
+        if not isinstance(export, dict):
+            return
+        artifact = {
+            "type": "export_artifact",
+            "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+            "origin_turn_id": result.get("turn_id"),
+            "export_format": export.get("format"),
+            "export_content": export.get("content"),
+            "query": result.get("query", ""),
+            "output_path": output_path,
+            "destination": "file" if output_path else "stdout",
+            "content_sha256": hashlib.sha256(output_text.encode("utf-8")).hexdigest(),
+        }
+        self.session_manager.append_turn(self.session.session_id, artifact)
+        remember = getattr(self.session, "remember_export_artifact", None)
+        if callable(remember):
+            remember(artifact)
 
     def _compose_response(
         self,

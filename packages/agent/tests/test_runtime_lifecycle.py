@@ -23,6 +23,11 @@ class _SessionManagerStub:
         self.appended.append((session_id, turn))
 
 
+class _SessionWithRestore(dict):
+    def restore_from_messages(self):
+        self["restored"] = True
+
+
 class RuntimeLifecycleTests(unittest.TestCase):
     def test_restore_turn_messages_rebuilds_user_and_assistant_messages(self):
         rows = [
@@ -48,6 +53,20 @@ class RuntimeLifecycleTests(unittest.TestCase):
 
         self.assertEqual(created["session_id"], "session-1")
         self.assertEqual(len(created["messages"]), 2)
+
+    def test_open_or_create_session_calls_restore_hook_when_available(self):
+        rows = [{"type": "turn", "turn_id": "t1", "user_input": "probe", "result": {"intent": "probe"}}]
+        manager = _SessionManagerStub(rows=rows)
+
+        created = open_or_create_session(
+            continue_recent=True,
+            session_manager=manager,
+            system_prompt="sys",
+            session_factory=lambda **kwargs: _SessionWithRestore(kwargs),
+        )
+
+        self.assertTrue(created["restored"])
+        self.assertEqual(created["session_id"], "session-1")
 
     def test_open_or_create_session_creates_new_when_no_recent(self):
         manager = _SessionManagerStub(rows=[])

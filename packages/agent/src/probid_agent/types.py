@@ -81,6 +81,7 @@ class ToolTraceItem(TypedDict, total=False):
     status: str
     result_type: str
     error: str
+    payload: Any
 
 
 class PlanExecutionResult(TypedDict):

@@ -28,6 +28,28 @@ This file is the single source of instructions for coding agents working in this
 - Agent harness shell alias: `probid agent`
 - One-shot harness query (text): `probid -q "probe laptop"`
 - One-shot harness query (JSON): `probid -q "probe laptop" --json-output`
+- Continue most recent persisted session: `probid -q "explain the top finding" --session-dir .probid-sessions --continue-recent --json-output`
+- Export recent session as JSON content only: `probid -q "turn this into json" --session-dir .probid-sessions --continue-recent --export-output --output export.json`
+- Export recent session as Markdown report: `probid -q "make this a markdown report" --session-dir .probid-sessions --continue-recent --export-output --output report.md`
+- Export recent session as analyst handoff: `probid -q "generate a handoff note for another analyst" --session-dir .probid-sessions --continue-recent --export-output --output handoff.json`
+- Export recent session as CSV summary: `probid -q "export a csv summary" --session-dir .probid-sessions --continue-recent --export-output --output summary.csv`
+- Export recent session as case timeline: `probid -q "make this a case timeline" --session-dir .probid-sessions --continue-recent --export-output --output timeline.md`
+- Export recent session as findings table: `probid -q "turn this into a findings table" --session-dir .probid-sessions --continue-recent --export-output --output findings-table.md`
+- Inspect last export destination from the current session: `probid -q "show last export destination" --session-dir .probid-sessions --continue-recent --json-output`
+- Inspect last export format from the current session: `probid -q "what was the last export format?" --session-dir .probid-sessions --continue-recent --json-output`
+- List prior exports from the current session: `probid -q "list prior exports" --session-dir .probid-sessions --continue-recent --json-output`
+- Re-export the last persisted artifact to a new file: `probid -q "re-export the last artifact" --session-dir .probid-sessions --continue-recent --export-output --output export-copy.json`
+- Re-export the last markdown report to a new file: `probid -q "re-export the last markdown report" --session-dir .probid-sessions --continue-recent --export-output --output report-copy.md`
+- Inspect persisted export artifacts directly: `probid exports --session-dir .probid-sessions`
+- Inspect persisted export artifacts as JSON: `probid exports --session-dir .probid-sessions --json`
+- Filter persisted export artifacts by format: `probid exports --session-dir .probid-sessions --format markdown`
+- Inspect a specific session by full id or unique prefix: `probid exports --session-dir .probid-sessions --session-id abcd1234`
+- List exports across all sessions: `probid exports --session-dir .probid-sessions --all`
+- Limit exports displayed: `probid exports --session-dir .probid-sessions --limit 10`
+- Combine filtering across all sessions: `probid exports --session-dir .probid-sessions --all --format json --limit 20`
+- Use `.md` / `.markdown` for markdown-style exports, `.csv` for CSV summaries, and `.json` for structured exports.
+- Export artifact metadata is persisted as session events and can be queried with session-aware follow-ups.
+- Manual validation for export-audit workflows should cover: create an export, then run `show last export destination`, `list prior exports`, and `re-export the last artifact` against the same persisted session.
 - Harness session logging is disabled by default. Enable with `PROBID_AGENT_LOG_SESSION=1`.
 - Probe with evidence/caveats: `probid probe "laptop" --why`
 - Probe JSON output: `probid probe "laptop" --json`

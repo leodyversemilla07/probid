@@ -36,7 +36,15 @@ def open_or_create_session(
             session_id, path = recent
             rows = session_manager.read_session_file(path)
             messages = restore_turn_messages(rows)
-            return session_factory(system_prompt=system_prompt, session_id=session_id, messages=messages)
+            session = session_factory(system_prompt=system_prompt, session_id=session_id, messages=messages)
+            restore_rows = getattr(session, "restore_from_rows", None)
+            if callable(restore_rows):
+                restore_rows(rows)
+                return session
+            restore = getattr(session, "restore_from_messages", None)
+            if callable(restore):
+                restore()
+            return session
 
     session_id, _path = session_manager.create_session()
     return session_factory(system_prompt=system_prompt, session_id=session_id)

@@ -7,6 +7,7 @@ from probid_probing_agent.core.providers_ai import (
     AIModelProvider,
     _build_system_prompt,
     _parse_plan_json,
+    supported_ai_tools,
 )
 
 
@@ -45,7 +46,7 @@ class AIProviderTests(unittest.TestCase):
         self.assertIsNotNone(provider.system_prompt)
 
     @patch("probid_probing_agent.core.providers_ai.OpenAIClient")
-    def test_handle_returns_error_on_invalid_json(self, mock_client_cls):
+    def test_handle_raises_on_invalid_json(self, mock_client_cls):
         # Setup mock
         mock_client = MagicMock()
         mock_response = MagicMock()
@@ -55,17 +56,14 @@ class AIProviderTests(unittest.TestCase):
         mock_client.chat_completions.return_value = mock_response
         mock_client_cls.return_value = mock_client
 
-        # Create provider and mock runtime
         provider = AIModelProvider(client=mock_client)
         mock_runtime = self._runtime_stub()
 
-        result = provider.handle("probe laptops", mock_runtime)
-
-        self.assertEqual(result["intent"], "error")
-        self.assertIn("parse", result["error"].lower())
+        with self.assertRaisesRegex(ValueError, "Failed to parse LLM response"):
+            provider.handle("probe laptops", mock_runtime)
 
     @patch("probid_probing_agent.core.providers_ai.OpenAIClient")
-    def test_handle_returns_error_on_missing_intent(self, mock_client_cls):
+    def test_handle_raises_on_missing_intent(self, mock_client_cls):
         # Setup mock
         mock_client = MagicMock()
         mock_response = MagicMock()
@@ -78,10 +76,8 @@ class AIProviderTests(unittest.TestCase):
         provider = AIModelProvider(client=mock_client)
         mock_runtime = self._runtime_stub()
 
-        result = provider.handle("hello", mock_runtime)
-
-        self.assertEqual(result["intent"], "error")
-        self.assertIn("intent", result["error"].lower())
+        with self.assertRaisesRegex(ValueError, "intent"):
+            provider.handle("hello", mock_runtime)
 
     @patch("probid_probing_agent.core.providers_ai.OpenAIClient")
     def test_handle_parses_valid_json_plan(self, mock_client_cls):
@@ -121,6 +117,57 @@ class AIProviderTests(unittest.TestCase):
         content = 'Here is your plan:\n{"intent":"probe","query":"laptop","steps":[]}\nDone.'
         plan = _parse_plan_json(content)
         self.assertEqual(plan["query"], "laptop")
+
+    def test_normalizes_plan_missing_cli_equivalent(self):
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.choices = [
+            MagicMock(
+                message=MagicMock(
+                    content='{"intent": "probe", "query": "laptop", "steps": [{"tool": "probe", "args": {"query": "laptop", "agency": "DICT"}}]}'
+                )
+            )
+        ]
+        mock_client.chat_completions.return_value = mock_response
+
+        provider = AIModelProvider(client=mock_client)
+        mock_runtime = self._runtime_stub()
+
+        with patch("probid_probing_agent.core.providers_ai.cache.connection") as mock_connection, patch(
+            "probid_probing_agent.core.providers_ai.build_tool_registry"
+        ) as mock_registry_builder, patch(
+            "probid_probing_agent.core.providers_ai.execute_plan_steps",
+            return_value=({}, [{"tool": "probe", "status": "success", "cli_equivalent": 'probid probe "laptop" --pages 1 --min-confidence low --max-findings 5 --agency "DICT"'}]),
+        ):
+            mock_connection.return_value.__enter__.return_value = object()
+            mock_registry_builder.return_value = MagicMock()
+            result = provider.handle("probe laptop in DICT", mock_runtime)
+
+        self.assertEqual(result["intent"], "probe")
+        mock_runtime._validate_plan.assert_called_once()
+        validated_plan = mock_runtime._validate_plan.call_args.args[0]
+        self.assertIn("cli_equivalent", validated_plan["steps"][0])
+        self.assertIn('--agency "DICT"', validated_plan["steps"][0]["cli_equivalent"])
+
+    def test_rejects_unsupported_tool_in_ai_plan(self):
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.choices = [
+            MagicMock(message=MagicMock(content='{"intent": "probe", "query": "laptop", "steps": [{"tool": "delete_db", "args": {}}]}'))
+        ]
+        mock_client.chat_completions.return_value = mock_response
+
+        provider = AIModelProvider(client=mock_client)
+        mock_runtime = self._runtime_stub()
+
+        with self.assertRaisesRegex(ValueError, "Unsupported tool"):
+            provider.handle("probe laptop", mock_runtime)
+
+    def test_supported_ai_tools_exposes_allowed_surface(self):
+        tools = supported_ai_tools()
+        self.assertIn("probe", tools)
+        self.assertIn("network", tools)
+        self.assertIn("overprice", tools)
 
     def test_provider_uses_env_defaults_when_model_not_explicit(self):
         with patch.dict(

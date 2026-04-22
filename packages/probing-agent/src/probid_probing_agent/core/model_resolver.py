@@ -9,7 +9,7 @@ def resolve_default_model() -> str:
     return (
         os.environ.get("PROBID_AI_MODEL")
         or os.environ.get("OPENAI_MODEL")
-        or "gpt-4"
+        or "minimax-m2.5-free"  # Default to OpenCode Zen free model
     )
 
 

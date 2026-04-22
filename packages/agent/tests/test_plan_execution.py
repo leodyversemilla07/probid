@@ -58,6 +58,8 @@ class PlanExecutionEdgeCaseTests(unittest.TestCase):
         )
 
         self.assertEqual(payload["name"], "second")
+        self.assertEqual(trace[0]["payload"]["name"], "first")
+        self.assertEqual(trace[1]["payload"]["name"], "second")
 
 
 if __name__ == "__main__":
