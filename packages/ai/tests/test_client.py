@@ -2,12 +2,12 @@
 
 import os
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from probid_ai.client import BaseAIClient, getenv_or_raise, APIError
+from probid_ai.client import getenv_or_raise
 from probid_ai.env_api_keys import get_env_api_key
-from probid_ai.types import ChatCompletionRequest, Message
 from probid_ai.openai_client import OpenAIClient
+from probid_ai.types import ChatCompletionRequest, Message
 
 
 class AIClientTests(unittest.TestCase):
@@ -29,7 +29,13 @@ class AIClientTests(unittest.TestCase):
             self.assertEqual(client.base_url, "https://api.openai.com/v1")
 
     def test_openai_client_uses_custom_base_url(self):
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test", "OPENAI_BASE_URL": "http://localhost:8080/v1"}):
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-test",
+                "OPENAI_BASE_URL": "http://localhost:8080/v1",
+            },
+        ):
             client = OpenAIClient()
             self.assertEqual(client.base_url, "http://localhost:8080/v1")
 

@@ -16,8 +16,7 @@ class TruncatedText(Component):
         width = max(1, width)
         inner = max(1, width - (self.padding_x * 2))
         line = (" " * self.padding_x) + truncate_to_width(self.text, inner, pad=True) + (" " * self.padding_x)
-        out = [" " * width for _ in range(self.padding_y)]
+        out: list[str] = [" " * width for _ in range(self.padding_y)]
         out.append(line[:width].ljust(width))
         out.extend([" " * width for _ in range(self.padding_y)])
         return out
-

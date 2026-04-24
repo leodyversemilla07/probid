@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
@@ -67,7 +67,11 @@ class CombinedAutocompleteProvider:
             if q:
                 commands = fuzzy_filter(commands, q, lambda c: c.name)
             items = [
-                AutocompleteItem(value=f"/{cmd.name}", label=f"/{cmd.name}", description=cmd.description)
+                AutocompleteItem(
+                    value=f"/{cmd.name}",
+                    label=f"/{cmd.name}",
+                    description=cmd.description,
+                )
                 for cmd in commands[:20]
             ]
             return AutocompleteSuggestions(items=items, start=token_start, end=cursor_pos)
@@ -99,7 +103,11 @@ class CombinedAutocompleteProvider:
             if token.startswith("@"):
                 display = "@" + display
             candidates.append(
-                AutocompleteItem(value=display, label=display, description="directory" if child.is_dir() else "file")
+                AutocompleteItem(
+                    value=display,
+                    label=display,
+                    description="directory" if child.is_dir() else "file",
+                )
             )
             if len(candidates) >= 30:
                 break
@@ -107,4 +115,3 @@ class CombinedAutocompleteProvider:
         if not candidates:
             return None
         return AutocompleteSuggestions(items=candidates, start=token_start, end=cursor_pos)
-

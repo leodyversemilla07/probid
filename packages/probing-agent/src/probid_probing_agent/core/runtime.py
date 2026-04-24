@@ -10,8 +10,10 @@ from typing import Any
 
 from probid_agent.runtime_base import BaseAgentRuntime
 from probid_agent.runtime_lifecycle import open_or_create_session, persist_turn
-from probid_agent.types import ExecutionPlan, ToolTraceItem
-from probid_probing_agent.core import providers  # noqa: F401  # ensure built-in providers register
+from probid_agent.types import ExecutionPlan, ResponseEnvelope, ToolTraceItem
+from probid_probing_agent.core import (
+    providers,  # noqa: F401  # ensure built-in providers register
+)
 from probid_probing_agent.core.prompt import get_system_prompt
 from probid_probing_agent.core.provider_registry import get_provider, list_providers
 from probid_probing_agent.core.response_builder import ResponseBuilder
@@ -55,13 +57,13 @@ class ProbidAgentRuntime(BaseAgentRuntime):
 
     def available_tools(self) -> list[str]:
         return [
-            "probid probe \"<query>\" --pages 1 --min-confidence low --max-findings 5",
+            'probid probe "<query>" --pages 1 --min-confidence low --max-findings 5',
             "probid detail <ref_id>",
             "probid awards",
-            "probid supplier \"<name>\"",
-            "probid agency \"<name>\"",
+            'probid supplier "<name>"',
+            'probid agency "<name>"',
             "probid repeat --min-count 3",
-            "probid split \"<agency>\" --gap-days 30",
+            'probid split "<agency>" --gap-days 30',
         ]
 
     def _validate_plan(self, plan: ExecutionPlan) -> None:
@@ -131,7 +133,7 @@ class ProbidAgentRuntime(BaseAgentRuntime):
         plan: ExecutionPlan,
         payload: Any,
         tool_trace: list[ToolTraceItem],
-    ) -> dict[str, Any]:
+    ) -> ResponseEnvelope:
         intent = plan.get("intent", "unknown")
         query = plan.get("query", "")
         return self._response_builder.build(
@@ -140,8 +142,8 @@ class ProbidAgentRuntime(BaseAgentRuntime):
             payload=payload,
             tool_trace=tool_trace,
             fallback_next_actions=lambda q: [
-                f"probid probe \"{q}\" --why",
-                f"probid probe \"{q}\" --json",
-                f"probid search \"{q}\" --detail",
+                f'probid probe "{q}" --why',
+                f'probid probe "{q}" --json',
+                f'probid search "{q}" --detail',
             ],
         )

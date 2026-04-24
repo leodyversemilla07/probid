@@ -1,5 +1,9 @@
 # probid
 
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
+
 Minimal terminal probing agent harness for Philippine public procurement.
 
 Minimal tool. Serious purpose.
@@ -45,7 +49,36 @@ python3 scripts/run_tests.py
 ./test.sh
 
 # Run a single contract test directly
-PYTHONPATH=packages/probing-agent/src:packages/agent/src:packages/ai/src:packages/tui/src:packages/mom/src:packages/pods/src python3 -m unittest packages/probing-agent/tests/test_probe_output_contract.py -v
+PYTHONPATH=packages/probing-agent/src:packages/agent/src:packages/ai/src:packages/tui/src python3 -m unittest packages/probing-agent/tests/test_probe_output_contract.py -v
+```
+
+## Linting & Formatting
+
+```bash
+# Run linter
+make lint
+# or
+uv run ruff check packages/
+
+# Format code
+make format
+# or
+uv run ruff format packages/
+
+# Check linting and formatting (CI)
+make check
+```
+
+## Type Checking
+
+```bash
+# Run type checker
+make type
+# or
+uv run ty check
+
+# With specific output format
+uv run ty check --output-format github
 ```
 
 ## Workspace commands
@@ -326,8 +359,6 @@ Extension rules:
 | `packages/agent/` | Shared agent-core abstractions extracted and tested (30 tests) | extracted |
 | `packages/ai/` | Future provider/model integration layer | experimental |
 | `packages/tui/` | Future terminal UI primitives | experimental |
-| `packages/mom/` | Future messaging/bot integrations | experimental |
-| `packages/pods/` | Future infrastructure/model-pod helpers | experimental |
 | `packages/web-ui/` | Future browser UI package | experimental |
 
 Today, the main implementation lives in `packages/probing-agent/`. The `packages/agent/` package contains reusable runtime primitives extracted for future reuse.
@@ -353,9 +384,7 @@ probid
     │   ├── src/probid_probing_agent
     │   └── tests/
     ├── tui                    # terminal UI components
-    ├── web-ui                 # web UI rendering
-    ├── mom                    # messaging/bot store
-    └── pods                   # model pod management
+    └── web-ui                 # web UI rendering
 ```
 
 ## Packages
@@ -367,10 +396,8 @@ probid
 | `ai/` | AI client layer (OpenAI-compatible) | extracted | 20 |
 | `tui/` | Terminal UI components | extracted | 36 |
 | `web-ui/` | Web UI rendering | extracted | 15 |
-| `mom/` | Messaging/bot store | extracted | 11 |
-| `pods/` | Model pod management | extracted | 14 |
 
-**Total: 212 tests passing**
+**Total: 197 tests passing**
 
 
 ## How the project works

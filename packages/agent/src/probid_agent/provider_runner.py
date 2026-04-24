@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
-from probid_agent.types import ExecutionPlan, ProviderRuntimeProtocol, ResponseEnvelope, ToolTraceItem
-
+from probid_agent.types import (
+    ExecutionPlan,
+    ProviderRuntimeProtocol,
+    ResponseEnvelope,
+    ToolTraceItem,
+)
 
 PlanBuilder = Callable[[str], ExecutionPlan]
 PlanExecutor = Callable[[ProviderRuntimeProtocol, ExecutionPlan], tuple[Any, list[ToolTraceItem]]]

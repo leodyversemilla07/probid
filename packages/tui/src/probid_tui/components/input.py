@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from probid_tui.core.ansi_utils import visible_width
 from probid_tui.core.component import Component, Focusable
@@ -267,7 +267,11 @@ class Input(Component, Focusable):
             while self._cursor > 0 and _is_punctuation(self._value[self._cursor - 1]):
                 self._cursor -= 1
             return
-        while self._cursor > 0 and (not self._value[self._cursor - 1].isspace()) and (not _is_punctuation(self._value[self._cursor - 1])):
+        while (
+            self._cursor > 0
+            and (not self._value[self._cursor - 1].isspace())
+            and (not _is_punctuation(self._value[self._cursor - 1]))
+        ):
             self._cursor -= 1
 
     def _move_word_forwards(self) -> None:
@@ -283,7 +287,11 @@ class Input(Component, Focusable):
             while self._cursor < n and _is_punctuation(self._value[self._cursor]):
                 self._cursor += 1
             return
-        while self._cursor < n and (not self._value[self._cursor].isspace()) and (not _is_punctuation(self._value[self._cursor])):
+        while (
+            self._cursor < n
+            and (not self._value[self._cursor].isspace())
+            and (not _is_punctuation(self._value[self._cursor]))
+        ):
             self._cursor += 1
 
     def _delete_to_line_start(self) -> None:
@@ -316,7 +324,7 @@ class Input(Component, Focusable):
         self._move_word_backwards()
         delete_from = self._cursor
         self._cursor = old_cursor
-        deleted = self._value[delete_from:self._cursor]
+        deleted = self._value[delete_from : self._cursor]
         self._kill_ring.push(deleted, prepend=True, accumulate=was_kill)
         self._last_action = "kill"
         self._last_yank_span = None
@@ -332,7 +340,7 @@ class Input(Component, Focusable):
         self._move_word_forwards()
         delete_to = self._cursor
         self._cursor = old_cursor
-        deleted = self._value[self._cursor:delete_to]
+        deleted = self._value[self._cursor : delete_to]
         self._kill_ring.push(deleted, prepend=False, accumulate=was_kill)
         self._last_action = "kill"
         self._last_yank_span = None

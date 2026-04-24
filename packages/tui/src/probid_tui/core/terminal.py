@@ -2,20 +2,43 @@
 
 from __future__ import annotations
 
-import fcntl
 import os
-import signal
-import struct
 import sys
-import termios
-import tty
 from abc import ABC, abstractmethod
-from typing import Callable
+from collections.abc import Callable
+
+# Platform-specific imports - handle missing modules gracefully
+_has_signal = False
+_has_termios = False
+_has_tty = False
+_has_fcntl = False
+
+if sys.platform != "win32":
+    try:
+        import fcntl  # noqa: F401
+        import signal
+        import termios
+        import tty  # noqa: F401
+
+        _has_signal = hasattr(signal, "SIGWINCH")
+        _has_termios = True
+        _has_tty = True
+        _has_fcntl = True
+    except (ImportError, AttributeError):
+        pass
+
+_SIGWINCH = getattr(signal, "SIGWINCH", None) if _has_signal else None
+_TIOCGWINSZ = getattr(termios, "TIOCGWINSZ", None) if _has_termios else None
+_TCSADRAIN = getattr(termios, "TCSADRAIN", None) if _has_termios else None
 
 
 class Terminal(ABC):
     @abstractmethod
-    def start(self, on_input: Callable[[bytes], None] | None = None, on_resize: Callable[[], None] | None = None) -> None: ...
+    def start(
+        self,
+        on_input: Callable[[bytes], None] | None = None,
+        on_resize: Callable[[], None] | None = None,
+    ) -> None: ...
 
     @abstractmethod
     def stop(self) -> None: ...
@@ -72,7 +95,8 @@ class ProcessTerminal(Terminal):
         self._input_callback: Callable[[bytes], None] | None = None
         self._kitty_protocol_active = False
 
-        signal.signal(signal.SIGWINCH, self._handle_resize)
+        if _SIGWINCH is not None:
+            signal.signal(_SIGWINCH, self._handle_resize)
         self._enter_raw_mode()
         self._enable_kitty_protocol()
         self._enable_bracketed_paste()
@@ -82,7 +106,11 @@ class ProcessTerminal(Terminal):
     def kitty_protocol_active(self) -> bool:
         return self._kitty_protocol_active
 
-    def start(self, on_input: Callable[[bytes], None] | None = None, on_resize: Callable[[], None] | None = None) -> None:
+    def start(
+        self,
+        on_input: Callable[[bytes], None] | None = None,
+        on_resize: Callable[[], None] | None = None,
+    ) -> None:
         self._input_callback = on_input
         if on_resize is not None:
             self.on_resize(lambda _c, _r: on_resize())
@@ -95,16 +123,25 @@ class ProcessTerminal(Terminal):
         return
 
     def _enter_raw_mode(self) -> None:
-        try:
-            self._old_settings = termios.tcgetattr(self._fd)
-            tty.setraw(self._fd)
-        except Exception:
+        if _has_termios and _has_tty:
+            try:
+                import termios
+                import tty
+
+                self._old_settings = termios.tcgetattr(self._fd)
+                tty.setraw(self._fd)
+            except Exception:
+                self._old_settings = None
+        else:
             self._old_settings = None
 
     def restore(self) -> None:
-        if self._old_settings is not None:
+        if self._old_settings is not None and _has_termios:
             try:
-                termios.tcsetattr(self._fd, termios.TCSADRAIN, self._old_settings)
+                import termios
+
+                if _TCSADRAIN is not None:
+                    termios.tcsetattr(self._fd, _TCSADRAIN, self._old_settings)
             except Exception:
                 pass
         self.show_cursor()
@@ -116,14 +153,20 @@ class ProcessTerminal(Terminal):
         sys.stdout.flush()
 
     def get_size(self) -> tuple[int, int]:
-        try:
-            buf = fcntl.ioctl(self._fd, termios.TIOCGWINSZ, b"\x00" * 8)
-            rows, cols = struct.unpack("HHHH", buf)[:2]
-            return cols, rows
-        except Exception:
-            cols = int(os.environ.get("COLUMNS", "80"))
-            rows = int(os.environ.get("LINES", "24"))
-            return cols, rows
+        if _has_fcntl and _has_termios and _TIOCGWINSZ is not None:
+            try:
+                import fcntl
+                import struct
+
+                buf = fcntl.ioctl(self._fd, _TIOCGWINSZ, b"\x00" * 8)
+                rows, cols = struct.unpack("HHHH", buf)[:2]
+                return cols, rows
+            except Exception:
+                pass
+        # Fallback to environment variables
+        cols = int(os.environ.get("COLUMNS", "80"))
+        rows = int(os.environ.get("LINES", "24"))
+        return cols, rows
 
     def on_resize(self, callback: Callable[[int, int], None]) -> None:
         self._resize_callbacks.append(callback)

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Generic, Iterable, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
@@ -70,4 +71,3 @@ def fuzzy_filter(items: list[T], query: str, get_text: Callable[[T], str]) -> li
 # pi-tui style aliases
 fuzzyMatch = fuzzy_match
 fuzzyFilter = fuzzy_filter
-

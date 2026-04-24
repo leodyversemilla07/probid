@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import Any
 
 
 def restore_turn_messages(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

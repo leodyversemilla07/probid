@@ -7,11 +7,20 @@ import json
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
-from probid_tui import Editor, OverlayOptions, ProcessTerminal, TUI, parse_key, truncate_to_width, visible_width
+from probid_tui import (
+    TUI,
+    Editor,
+    OverlayOptions,
+    ProcessTerminal,
+    parse_key,
+    truncate_to_width,
+    visible_width,
+)
 from probid_tui.core.component import Component
 
 SLASH_COMMANDS = (
@@ -156,12 +165,7 @@ class SlashCommandDropdownComponent(Component):
             desc_plain = truncate_to_width(desc, desc_width, pad=False)
 
             if selected:
-                row = (
-                    _paint(prefix_plain, ACCENT)
-                    + _paint(cmd_plain, "1", ACCENT)
-                    + " "
-                    + _paint(desc_plain, CYAN)
-                )
+                row = _paint(prefix_plain, ACCENT) + _paint(cmd_plain, "1", ACCENT) + " " + _paint(desc_plain, CYAN)
             else:
                 row = prefix_plain + _paint(cmd_plain, MUTED) + " " + _paint(desc_plain, DIM)
             lines.append(self._pad_visible(row, width))
@@ -589,27 +593,40 @@ def run_interactive(
 
     original_editor_handle_input = editor.handle_input
 
-    def editor_handle_input_with_slash_dropdown(data: bytes) -> bool:
-        key = parse_key(data)
-        if slash_dropdown.is_open():
-            if key in {"up", "ctrl+p"}:
-                if slash_dropdown.move_selection(-1):
-                    tui.request_render(force=True)
-                    return True
-            if key in {"down", "ctrl+n"}:
-                if slash_dropdown.move_selection(1):
-                    tui.request_render(force=True)
-                    return True
-            if key in {"tab", "enter"}:
-                if slash_dropdown.apply_selected():
-                    tui.request_render(force=True)
-                    return True
-        consumed = original_editor_handle_input(data)
-        if consumed:
-            tui.request_render()
-        return consumed
+    class EditorHandleInputWithSlashDropdown:
+        """Callable wrapper for editor input handling with slash dropdown support."""
 
-    editor.handle_input = editor_handle_input_with_slash_dropdown  # type: ignore[assignment]
+        def __init__(
+            self,
+            slash_dropdown: Any,
+            original_handle_input: Any,
+            tui: Any,
+        ):
+            self.slash_dropdown = slash_dropdown
+            self.original_handle_input = original_handle_input
+            self.tui = tui
+
+        def __call__(self, data: bytes) -> bool:
+            key = parse_key(data)
+            if self.slash_dropdown.is_open():
+                if key in {"up", "ctrl+p"}:
+                    if self.slash_dropdown.move_selection(-1):
+                        self.tui.request_render(force=True)
+                        return True
+                if key in {"down", "ctrl+n"}:
+                    if self.slash_dropdown.move_selection(1):
+                        self.tui.request_render(force=True)
+                        return True
+                if key in {"tab", "enter"}:
+                    if self.slash_dropdown.apply_selected():
+                        self.tui.request_render(force=True)
+                        return True
+            consumed = self.original_handle_input(data)
+            if consumed:
+                self.tui.request_render()
+            return consumed
+
+    editor.handle_input = EditorHandleInputWithSlashDropdown(slash_dropdown, original_editor_handle_input, tui)
 
     def on_unhandled_input(data: bytes) -> None:
         key = parse_key(data)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class Component(ABC):
@@ -14,8 +15,12 @@ class Component(ABC):
     def render(self, width: int) -> list[str]:
         """Return one string per line within the provided visible width."""
 
-    def handle_input(self, data: bytes) -> bool:
-        """Handle terminal input; return True when consumed."""
+    # handle_input can be replaced at runtime with any callable.
+    # If not set, the component's _process_input method is used as fallback.
+    handle_input: Any = None
+
+    def _process_input(self, data: bytes) -> bool:
+        """Default input processing - override in subclasses."""
         return False
 
     def invalidate(self) -> None:

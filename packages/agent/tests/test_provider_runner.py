@@ -1,6 +1,9 @@
 import unittest
 
-from probid_agent.provider_runner import BaseProviderRunner, DeterministicProviderAdapter
+from probid_agent.provider_runner import (
+    BaseProviderRunner,
+    DeterministicProviderAdapter,
+)
 
 
 class _DummyRuntime:
@@ -30,7 +33,11 @@ class ProviderRunnerTests(unittest.TestCase):
         runner = BaseProviderRunner()
 
         def _build_plan(user_input: str):
-            return {"intent": "probe", "query": user_input, "steps": [{"tool": "probe"}]}
+            return {
+                "intent": "probe",
+                "query": user_input,
+                "steps": [{"tool": "probe"}],
+            }
 
         def _execute_plan(_runtime, plan):
             return {"ok": True, "query": plan["query"]}, [{"tool": "probe", "status": "success"}]
@@ -51,8 +58,15 @@ class ProviderRunnerTests(unittest.TestCase):
         runtime = _DummyRuntime()
 
         adapter = DeterministicProviderAdapter(
-            build_plan=lambda text: {"intent": "probe", "query": text, "steps": [{"tool": "probe"}]},
-            execute_plan=lambda _runtime, plan: ({"query": plan["query"]}, [{"tool": "probe", "status": "success"}]),
+            build_plan=lambda text: {
+                "intent": "probe",
+                "query": text,
+                "steps": [{"tool": "probe"}],
+            },
+            execute_plan=lambda _runtime, plan: (
+                {"query": plan["query"]},
+                [{"tool": "probe", "status": "success"}],
+            ),
         )
 
         result = adapter.handle("server", runtime)

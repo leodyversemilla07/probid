@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 LEGACY_KEYS: dict[bytes, str] = {
     b"\x1b[A": "up",
     b"\x1b[B": "down",
@@ -210,7 +208,12 @@ def parse_key(data: bytes | str) -> str | None:
             else:
                 name = str(codepoint)
 
-            prefix = ("ctrl+" if ctrl else "") + ("alt+" if alt else "") + ("shift+" if shift else "") + ("super+" if sup else "")
+            prefix = (
+                ("ctrl+" if ctrl else "")
+                + ("alt+" if alt else "")
+                + ("shift+" if shift else "")
+                + ("super+" if sup else "")
+            )
             return prefix + name
         except Exception:
             return None

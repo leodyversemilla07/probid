@@ -1,6 +1,10 @@
 import unittest
 
-from probid_agent.runtime_lifecycle import open_or_create_session, persist_turn, restore_turn_messages
+from probid_agent.runtime_lifecycle import (
+    open_or_create_session,
+    persist_turn,
+    restore_turn_messages,
+)
 
 
 class _SessionManagerStub:
@@ -32,7 +36,12 @@ class RuntimeLifecycleTests(unittest.TestCase):
     def test_restore_turn_messages_rebuilds_user_and_assistant_messages(self):
         rows = [
             {"type": "session_start"},
-            {"type": "turn", "turn_id": "t1", "user_input": "probe laptop", "result": {"intent": "probe"}},
+            {
+                "type": "turn",
+                "turn_id": "t1",
+                "user_input": "probe laptop",
+                "result": {"intent": "probe"},
+            },
         ]
         messages = restore_turn_messages(rows)
 
@@ -41,7 +50,14 @@ class RuntimeLifecycleTests(unittest.TestCase):
         self.assertEqual(messages[1]["role"], "assistant")
 
     def test_open_or_create_session_continues_recent_when_available(self):
-        rows = [{"type": "turn", "turn_id": "t1", "user_input": "probe", "result": {"intent": "probe"}}]
+        rows = [
+            {
+                "type": "turn",
+                "turn_id": "t1",
+                "user_input": "probe",
+                "result": {"intent": "probe"},
+            }
+        ]
         manager = _SessionManagerStub(rows=rows)
 
         created = open_or_create_session(
@@ -55,7 +71,14 @@ class RuntimeLifecycleTests(unittest.TestCase):
         self.assertEqual(len(created["messages"]), 2)
 
     def test_open_or_create_session_calls_restore_hook_when_available(self):
-        rows = [{"type": "turn", "turn_id": "t1", "user_input": "probe", "result": {"intent": "probe"}}]
+        rows = [
+            {
+                "type": "turn",
+                "turn_id": "t1",
+                "user_input": "probe",
+                "result": {"intent": "probe"},
+            }
+        ]
         manager = _SessionManagerStub(rows=rows)
 
         created = open_or_create_session(

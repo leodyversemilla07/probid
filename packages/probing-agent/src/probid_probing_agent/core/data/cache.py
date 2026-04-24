@@ -9,7 +9,6 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 DEFAULT_CACHE_DIR = Path.home() / ".probid"
 DEFAULT_DB_NAME = "probid.db"
@@ -22,7 +21,7 @@ def get_cache_dir() -> Path:
     return cache_dir
 
 
-def _get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
+def _get_connection(db_path: str | None = None) -> sqlite3.Connection:
     """Get a SQLite connection, creating tables if needed. Internal use — prefer connection()."""
     if db_path is None:
         db_path = str(get_cache_dir() / DEFAULT_DB_NAME)
@@ -36,7 +35,7 @@ def _get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
 
 
 @contextmanager
-def connection(db_path: Optional[str] = None):
+def connection(db_path: str | None = None):
     """Context manager for SQLite connections — auto-closes on exit."""
     conn = _get_connection(db_path)
     try:
@@ -89,9 +88,11 @@ def _ensure_tables(conn: sqlite3.Connection) -> None:
 
 # ── Notice CRUD ──
 
+
 def upsert_notice(conn: sqlite3.Connection, notice: dict) -> None:
     """Insert or update a procurement notice."""
-    conn.execute("""
+    conn.execute(
+        """
         INSERT INTO notices (ref_no, title, agency, notice_type, category,
             area_of_delivery, posted_date, closing_date, approved_budget,
             description, url, documents, scraped_at)
@@ -104,15 +105,23 @@ def upsert_notice(conn: sqlite3.Connection, notice: dict) -> None:
             approved_budget=excluded.approved_budget,
             description=excluded.description, url=excluded.url,
             documents=excluded.documents, scraped_at=excluded.scraped_at
-    """, (
-        notice["ref_no"], notice["title"], notice["agency"],
-        notice.get("notice_type", ""), notice.get("category", ""),
-        notice.get("area_of_delivery", ""), notice.get("posted_date", ""),
-        notice.get("closing_date", ""), notice.get("approved_budget", 0),
-        notice.get("description", ""), notice.get("url", ""),
-        json.dumps(notice.get("documents", [])),
-        datetime.now().isoformat(),
-    ))
+    """,
+        (
+            notice["ref_no"],
+            notice["title"],
+            notice["agency"],
+            notice.get("notice_type", ""),
+            notice.get("category", ""),
+            notice.get("area_of_delivery", ""),
+            notice.get("posted_date", ""),
+            notice.get("closing_date", ""),
+            notice.get("approved_budget", 0),
+            notice.get("description", ""),
+            notice.get("url", ""),
+            json.dumps(notice.get("documents", [])),
+            datetime.now().isoformat(),
+        ),
+    )
     conn.commit()
 
 
@@ -151,19 +160,22 @@ def search_notices(
 
 # ── Award CRUD ──
 
+
 def _stable_award_ref(award: dict) -> str:
     """Return a stable ref_no for awards even when PhilGEPS does not expose refID."""
     ref_no = str(award.get("ref_no", "")).strip()
     if ref_no:
         return ref_no
 
-    fingerprint = "|".join([
-        str(award.get("project_title", "")).strip().lower(),
-        str(award.get("agency", "")).strip().lower(),
-        str(award.get("supplier", "")).strip().lower(),
-        str(award.get("award_date", "")).strip(),
-        str(award.get("award_amount", 0)),
-    ])
+    fingerprint = "|".join(
+        [
+            str(award.get("project_title", "")).strip().lower(),
+            str(award.get("agency", "")).strip().lower(),
+            str(award.get("supplier", "")).strip().lower(),
+            str(award.get("award_date", "")).strip(),
+            str(award.get("award_amount", 0)),
+        ]
+    )
     digest = hashlib.sha1(fingerprint.encode("utf-8")).hexdigest()[:16]
     return f"NOREF-{digest}"
 
@@ -175,7 +187,8 @@ def upsert_award(conn: sqlite3.Connection, award: dict) -> None:
     agency = str(award.get("agency", "")).strip() or "UNKNOWN"
     supplier = str(award.get("supplier", "")).strip() or "UNKNOWN SUPPLIER"
 
-    conn.execute("""
+    conn.execute(
+        """
         INSERT INTO awards (ref_no, project_title, agency, supplier,
             award_amount, award_date, approved_budget, bid_type, url, scraped_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -184,13 +197,20 @@ def upsert_award(conn: sqlite3.Connection, award: dict) -> None:
             award_amount=excluded.award_amount, award_date=excluded.award_date,
             approved_budget=excluded.approved_budget, bid_type=excluded.bid_type,
             url=excluded.url, scraped_at=excluded.scraped_at
-    """, (
-        ref_no, project_title, agency,
-        supplier, award.get("award_amount", 0),
-        award.get("award_date", ""), award.get("approved_budget", 0),
-        award.get("bid_type", ""), award.get("url", ""),
-        datetime.now().isoformat(),
-    ))
+    """,
+        (
+            ref_no,
+            project_title,
+            agency,
+            supplier,
+            award.get("award_amount", 0),
+            award.get("award_date", ""),
+            award.get("approved_budget", 0),
+            award.get("bid_type", ""),
+            award.get("url", ""),
+            datetime.now().isoformat(),
+        ),
+    )
     conn.commit()
 
 
@@ -219,17 +239,24 @@ def search_awards(
 
 # ── Analytics ──
 
+
 def get_supplier_stats(conn: sqlite3.Connection, supplier: str) -> dict:
     """Get aggregate stats for a supplier."""
-    row = conn.execute("""
+    row = conn.execute(
+        """
         SELECT COUNT(*) as total_awards, SUM(award_amount) as total_value,
                COUNT(DISTINCT agency) as agency_count
         FROM awards WHERE supplier LIKE ?
-    """, (f"%{supplier}%",)).fetchone()
+    """,
+        (f"%{supplier}%",),
+    ).fetchone()
 
-    agencies = conn.execute("""
+    agencies = conn.execute(
+        """
         SELECT DISTINCT agency FROM awards WHERE supplier LIKE ?
-    """, (f"%{supplier}%",)).fetchall()
+    """,
+        (f"%{supplier}%",),
+    ).fetchall()
 
     return {
         "total_awards": row["total_awards"] if row else 0,
@@ -241,20 +268,25 @@ def get_supplier_stats(conn: sqlite3.Connection, supplier: str) -> dict:
 
 def get_agency_stats(conn: sqlite3.Connection, agency: str) -> dict:
     """Get aggregate stats for a procuring entity."""
-    row = conn.execute("""
+    row = conn.execute(
+        """
         SELECT COUNT(*) as total_awards, SUM(award_amount) as total_spending
         FROM awards WHERE agency LIKE ?
-    """, (f"%{agency}%",)).fetchone()
+    """,
+        (f"%{agency}%",),
+    ).fetchone()
 
-    top_suppliers = conn.execute("""
+    top_suppliers = conn.execute(
+        """
         SELECT supplier, COUNT(*) as cnt, SUM(award_amount) as total
         FROM awards WHERE agency LIKE ?
         GROUP BY supplier ORDER BY total DESC LIMIT 10
-    """, (f"%{agency}%",)).fetchall()
+    """,
+        (f"%{agency}%",),
+    ).fetchall()
 
     return {
         "total_awards": row["total_awards"] if row else 0,
         "total_spending": row["total_spending"] or 0,
         "top_suppliers": [dict(r) for r in top_suppliers],
     }
-

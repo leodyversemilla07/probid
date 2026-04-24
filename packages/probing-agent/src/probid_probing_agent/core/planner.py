@@ -5,17 +5,51 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from probid_agent.types import ExecutionPlan, PlanStep
 
 _REF_RE = re.compile(r"\b\d{5,}\b")
 _AGENCY_RE = re.compile(r"\b(?:in|for|at|from)\s+([A-Z][A-Z0-9&()\- ]{2,}|[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b")
 _SUPPLIER_QUOTED_RE = re.compile(r'"([^"]+)"')
 _SESSION_CONTEXT_RE = re.compile(r"\[Session context\]\n(?P<body>(?:- .+\n?)*)", re.IGNORECASE)
 _STOPWORDS = {
-    "probe", "search", "check", "analyze", "analyse", "find", "look into", "inspect",
-    "awards", "award", "risks", "risk", "suspicious", "patterns", "pattern", "possible",
-    "split", "splitting", "contracts", "contract", "supplier", "agency", "profile",
-    "repeat", "concentration", "network", "overprice", "pricing", "procurement",
-    "tell me", "show me", "look at", "for", "in", "from", "with", "and", "then",
+    "probe",
+    "search",
+    "check",
+    "analyze",
+    "analyse",
+    "find",
+    "look into",
+    "inspect",
+    "awards",
+    "award",
+    "risks",
+    "risk",
+    "suspicious",
+    "patterns",
+    "pattern",
+    "possible",
+    "split",
+    "splitting",
+    "contracts",
+    "contract",
+    "supplier",
+    "agency",
+    "profile",
+    "repeat",
+    "concentration",
+    "network",
+    "overprice",
+    "pricing",
+    "procurement",
+    "tell me",
+    "show me",
+    "look at",
+    "for",
+    "in",
+    "from",
+    "with",
+    "and",
+    "then",
 }
 
 
@@ -88,11 +122,21 @@ def _extract_supplier_name(text: str) -> str:
 def _extract_subject_query(text: str, agency: str = "", supplier: str = "") -> str:
     cleaned = _extract_query(text)
 
-    for phrase in ("repeat awardees", "repeat awards", "supplier concentration", "contract splitting"):
+    for phrase in (
+        "repeat awardees",
+        "repeat awards",
+        "supplier concentration",
+        "contract splitting",
+    ):
         cleaned = re.sub(re.escape(phrase), "", cleaned, flags=re.IGNORECASE)
 
     if agency:
-        cleaned = re.sub(rf"\b(?:in|for|at|from)\s+{re.escape(agency)}\b", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(
+            rf"\b(?:in|for|at|from)\s+{re.escape(agency)}\b",
+            "",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
     if supplier:
         cleaned = cleaned.replace(f'"{supplier}"', "")
         cleaned = re.sub(rf"\bsupplier\s+{re.escape(supplier)}\b", "", cleaned, flags=re.IGNORECASE)
@@ -111,7 +155,7 @@ def _to_cli_equivalent(tool: str, args: dict[str, Any]) -> str:
         if args.get("supplier"):
             parts.append(f'--supplier "{args["supplier"]}"')
         if args.get("limit"):
-            parts.append(f'--limit {args["limit"]}')
+            parts.append(f"--limit {args['limit']}")
         return " ".join(parts)
     if tool == "supplier":
         name = args.get("name", "")
@@ -139,16 +183,13 @@ def _to_cli_equivalent(tool: str, args: dict[str, Any]) -> str:
     min_conf = args.get("min_confidence", "low")
     max_findings = args.get("max_findings", 5)
     pages = args.get("pages", 1)
-    cli = (
-        f'probid probe "{q}" --pages {pages} '
-        f"--min-confidence {min_conf} --max-findings {max_findings}"
-    )
+    cli = f'probid probe "{q}" --pages {pages} --min-confidence {min_conf} --max-findings {max_findings}'
     if args.get("agency"):
         cli += f' --agency "{args["agency"]}"'
     return cli
 
 
-def _step(tool: str, args: dict[str, Any]) -> dict[str, Any]:
+def _step(tool: str, args: dict[str, Any]) -> PlanStep:
     return {
         "tool": tool,
         "args": args,
@@ -156,7 +197,18 @@ def _step(tool: str, args: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-_SUPPORTED_TOOLS = {"probe", "search", "detail", "awards", "supplier", "agency", "repeat", "split", "network", "overprice"}
+_SUPPORTED_TOOLS = {
+    "probe",
+    "search",
+    "detail",
+    "awards",
+    "supplier",
+    "agency",
+    "repeat",
+    "split",
+    "network",
+    "overprice",
+}
 
 
 def supported_tools() -> set[str]:
@@ -188,7 +240,7 @@ def _candidate_list(raw: str, sep: str = ",") -> list[str]:
     return [item.strip() for item in (raw or "").split(sep) if item.strip()]
 
 
-def plan_for_input(user_input: str) -> dict[str, Any]:
+def plan_for_input(user_input: str) -> ExecutionPlan:
     raw_text = (user_input or "").strip()
     text, session_context = _strip_session_context(raw_text)
     lower = text.lower()
@@ -198,8 +250,14 @@ def plan_for_input(user_input: str) -> dict[str, Any]:
     context_query = session_context.get("query", "")
     ref_candidates = _candidate_list(session_context.get("ref_candidates", ""), sep=",")
     supplier_candidates = _candidate_list(session_context.get("supplier_candidates", ""), sep="|")
-    top_ref_id = session_context.get("top_ref_id", "") or session_context.get("ref_id", "") or (ref_candidates[0] if ref_candidates else "")
-    top_supplier = session_context.get("top_supplier", "") or supplier or (supplier_candidates[0] if supplier_candidates else "")
+    top_ref_id = (
+        session_context.get("top_ref_id", "")
+        or session_context.get("ref_id", "")
+        or (ref_candidates[0] if ref_candidates else "")
+    )
+    top_supplier = (
+        session_context.get("top_supplier", "") or supplier or (supplier_candidates[0] if supplier_candidates else "")
+    )
     second_supplier = supplier_candidates[1] if len(supplier_candidates) > 1 else top_supplier
     most_recent_award_ref = ref_candidates[0] if ref_candidates else top_ref_id
     subject_query = _extract_subject_query(text, agency=agency, supplier=supplier) or query or context_query
@@ -223,7 +281,14 @@ def plan_for_input(user_input: str) -> dict[str, Any]:
             ],
         }
 
-    if any(phrase in lower for phrase in ["high confidence", "only high confidence", "show only high confidence"]):
+    if any(
+        phrase in lower
+        for phrase in [
+            "high confidence",
+            "only high confidence",
+            "show only high confidence",
+        ]
+    ):
         probe_query = context_query or subject_query
         return {
             "intent": "probe",
@@ -242,7 +307,16 @@ def plan_for_input(user_input: str) -> dict[str, Any]:
             ],
         }
 
-    if any(phrase in lower for phrase in ["detail the first ref", "detail first ref", "show the first ref", "open the first ref", "drill into the top finding"]):
+    if any(
+        phrase in lower
+        for phrase in [
+            "detail the first ref",
+            "detail first ref",
+            "show the first ref",
+            "open the first ref",
+            "drill into the top finding",
+        ]
+    ):
         if top_ref_id:
             return {
                 "intent": "detail",
@@ -258,7 +332,14 @@ def plan_for_input(user_input: str) -> dict[str, Any]:
                 "steps": [_step("detail", {"ref_id": most_recent_award_ref})],
             }
 
-    if any(phrase in lower for phrase in ["supplier behind that", "check the supplier behind that", "show the supplier behind that"]):
+    if any(
+        phrase in lower
+        for phrase in [
+            "supplier behind that",
+            "check the supplier behind that",
+            "show the supplier behind that",
+        ]
+    ):
         if top_supplier:
             return {
                 "intent": "supplier",
@@ -266,7 +347,14 @@ def plan_for_input(user_input: str) -> dict[str, Any]:
                 "steps": [_step("supplier", {"name": top_supplier})],
             }
 
-    if any(phrase in lower for phrase in ["show the second supplier", "check the second supplier", "open the second supplier"]):
+    if any(
+        phrase in lower
+        for phrase in [
+            "show the second supplier",
+            "check the second supplier",
+            "open the second supplier",
+        ]
+    ):
         if second_supplier:
             return {
                 "intent": "supplier",
@@ -291,7 +379,9 @@ def plan_for_input(user_input: str) -> dict[str, Any]:
             "steps": [_step("split", {"agency": agency_name, "gap_days": 30})],
         }
 
-    if "overprice" in lower or ("pricing" in lower and not any(k in lower for k in ["probe", "risk", "suspicious", "check"])):
+    if "overprice" in lower or (
+        "pricing" in lower and not any(k in lower for k in ["probe", "risk", "suspicious", "check"])
+    ):
         category = subject_query or query or context_query
         return {
             "intent": "overprice",
@@ -331,7 +421,9 @@ def plan_for_input(user_input: str) -> dict[str, Any]:
             "steps": [_step("repeat", {"min_count": 3})],
         }
 
-    if any(k in lower for k in ["awards", "award"]) and any(k in lower for k in ["probe", "risk", "suspicious", "analy", "check"]):
+    if any(k in lower for k in ["awards", "award"]) and any(
+        k in lower for k in ["probe", "risk", "suspicious", "analy", "check"]
+    ):
         probe_query = subject_query or query or context_query
         return {
             "intent": "probe",
@@ -358,7 +450,18 @@ def plan_for_input(user_input: str) -> dict[str, Any]:
             "steps": [_step("awards", {"agency": agency, "supplier": supplier, "limit": 50})],
         }
 
-    if any(k in lower for k in ["probe", "risk", "suspicious", "analy", "check", "look into", "inspect"]):
+    if any(
+        k in lower
+        for k in [
+            "probe",
+            "risk",
+            "suspicious",
+            "analy",
+            "check",
+            "look into",
+            "inspect",
+        ]
+    ):
         probe_query = subject_query or query or context_query
         steps = []
         if agency or supplier:

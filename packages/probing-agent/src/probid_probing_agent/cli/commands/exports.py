@@ -46,7 +46,9 @@ def _artifact_sort_key(artifact: dict) -> tuple[str, str]:
     return (timestamp, turn_id)
 
 
-def _collect_all_artifacts(manager: ProbidSessionManager, export_format: str | None, limit: int | None) -> list[tuple[str, dict]]:
+def _collect_all_artifacts(
+    manager: ProbidSessionManager, export_format: str | None, limit: int | None
+) -> list[tuple[str, dict]]:
     sessions = manager.list_sessions()
     all_artifacts = []
     for sess in sessions:
@@ -55,7 +57,9 @@ def _collect_all_artifacts(manager: ProbidSessionManager, export_format: str | N
         artifacts = [row for row in rows if row.get("type") == "export_artifact"]
         if export_format:
             normalized_format = export_format.strip().lower()
-            artifacts = [row for row in artifacts if str(row.get("export_format", "")).strip().lower() == normalized_format]
+            artifacts = [
+                row for row in artifacts if str(row.get("export_format", "")).strip().lower() == normalized_format
+            ]
         artifacts.sort(key=_artifact_sort_key, reverse=True)
         for artifact in artifacts:
             all_artifacts.append((sess_id, artifact))
@@ -67,13 +71,49 @@ def _collect_all_artifacts(manager: ProbidSessionManager, export_format: str | N
 
 def register_export_commands(cli: click.Group) -> None:
     @cli.command("exports")
-    @click.option("--session-dir", default=None, help="Override the persisted harness session directory")
-    @click.option("--session-id", default=None, help="Inspect a specific persisted session id or unique prefix")
-    @click.option("--format", "export_format", default=None, help="Filter export artifacts by format (json, markdown, csv, timeline, findings_table, handoff, case_summary)")
-    @click.option("--json", "json_output", is_flag=True, help="Render export artifact rows as JSON")
-    @click.option("--all", "all_sessions", is_flag=True, help="List export artifacts across all sessions")
-    @click.option("--limit", "limit", default=None, type=int, help="Limit number of artifacts to show (per session if not using --all)")
-    def exports(session_dir: str | None, session_id: str | None, export_format: str | None, json_output: bool, all_sessions: bool, limit: int | None) -> None:
+    @click.option(
+        "--session-dir",
+        default=None,
+        help="Override the persisted harness session directory",
+    )
+    @click.option(
+        "--session-id",
+        default=None,
+        help="Inspect a specific persisted session id or unique prefix",
+    )
+    @click.option(
+        "--format",
+        "export_format",
+        default=None,
+        help="Filter export artifacts by format (json, markdown, csv, timeline, findings_table, handoff, case_summary)",
+    )
+    @click.option(
+        "--json",
+        "json_output",
+        is_flag=True,
+        help="Render export artifact rows as JSON",
+    )
+    @click.option(
+        "--all",
+        "all_sessions",
+        is_flag=True,
+        help="List export artifacts across all sessions",
+    )
+    @click.option(
+        "--limit",
+        "limit",
+        default=None,
+        type=int,
+        help="Limit number of artifacts to show (per session if not using --all)",
+    )
+    def exports(
+        session_dir: str | None,
+        session_id: str | None,
+        export_format: str | None,
+        json_output: bool,
+        all_sessions: bool,
+        limit: int | None,
+    ) -> None:
         """List persisted export artifacts.
 
         Defaults to the most recent session when neither --session-id nor --all is provided.
@@ -119,7 +159,9 @@ def register_export_commands(cli: click.Group) -> None:
         artifacts = [row for row in rows if row.get("type") == "export_artifact"]
         if export_format:
             normalized_format = export_format.strip().lower()
-            artifacts = [row for row in artifacts if str(row.get("export_format", "")).strip().lower() == normalized_format]
+            artifacts = [
+                row for row in artifacts if str(row.get("export_format", "")).strip().lower() == normalized_format
+            ]
         artifacts.sort(key=_artifact_sort_key, reverse=True)
         if limit:
             artifacts = artifacts[:limit]
@@ -127,7 +169,12 @@ def register_export_commands(cli: click.Group) -> None:
         if json_output:
             click.echo(
                 json.dumps(
-                    {"session_id": selected_session_id, "format": export_format, "limit": limit, "exports": artifacts},
+                    {
+                        "session_id": selected_session_id,
+                        "format": export_format,
+                        "limit": limit,
+                        "exports": artifacts,
+                    },
                     indent=2,
                     ensure_ascii=False,
                 )

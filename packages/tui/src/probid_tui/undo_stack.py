@@ -43,4 +43,3 @@ class UndoStack(Generic[S]):
     def clear(self) -> None:
         self._past.clear()
         self._future.clear()
-

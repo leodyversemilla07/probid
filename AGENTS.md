@@ -15,11 +15,16 @@ This file is the single source of instructions for coding agents working in this
 ## Setup commands
 
 - Install deps: `uv sync`
-- Install browser (optional): `uv sync --all-extras && playwright install chromium`
+- Install dev tools (ruff, ty): `uv sync --extra dev`
+- Install browser (optional): `uv sync --extra browser` or `uv sync --all-extras`
+- Run linter: `uv run ruff check packages/`
+- Format code: `uv run ruff format packages/`
+- Check linting/formatting: `uv run ruff check packages/ && uv run ruff format --check packages/`
+- Run type checker: `uv run ty check`
 - Run CLI help: `probid --help`
 - Run package test suite: `python3 scripts/run_tests.py`
 - Run package test suite via Make: `make test`
-- Run probe contract test directly: `PYTHONPATH=packages/probing-agent/src:packages/agent/src:packages/ai/src:packages/tui/src:packages/mom/src:packages/pods/src python3 -m unittest packages/probing-agent/tests/test_probe_output_contract.py -v`
+- Run probe contract test directly: `PYTHONPATH=packages/probing-agent/src:packages/agent/src:packages/ai/src:packages/tui/src python3 -m unittest packages/probing-agent/tests/test_probe_output_contract.py -v`
 
 ## Common run commands
 

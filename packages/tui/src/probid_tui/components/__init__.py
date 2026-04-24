@@ -14,7 +14,11 @@ from probid_tui.components.select_list import (
     SelectListTheme,
     SelectListTruncatePrimaryContext,
 )
-from probid_tui.components.settings_list import SettingItem, SettingsList, SettingsListTheme
+from probid_tui.components.settings_list import (
+    SettingItem,
+    SettingsList,
+    SettingsListTheme,
+)
 from probid_tui.components.spacer import Spacer
 from probid_tui.components.text import Text
 from probid_tui.components.truncated_text import TruncatedText
@@ -45,4 +49,3 @@ __all__ = [
     "Text",
     "TruncatedText",
 ]
-

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from probid_agent.errors import ProviderRegistryError
+from probid_agent.types import ResponseEnvelope
 
-
-ProviderHandler = Callable[[str, Any], dict[str, Any]]
+ProviderHandler = Callable[[str, Any], dict[str, Any] | ResponseEnvelope]
 
 
 @dataclass(frozen=True)

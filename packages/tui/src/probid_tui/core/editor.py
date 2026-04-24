@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from probid_tui.core.ansi_utils import truncate_to_width
 from probid_tui.core.component import Component, Focusable
@@ -22,6 +22,7 @@ class Editor(Component, Focusable):
         autocomplete: Callable[[str], list[str]] | None = None,
         on_submit: Callable[[str], None] | None = None,
     ):
+        super().__init__()
         self.max_visible_lines = max(1, max_visible_lines)
         self.rail_char = rail_char
         self.cursor_char = cursor_char
@@ -166,7 +167,11 @@ class Editor(Component, Focusable):
         self._scroll_offset = max(0, self._scroll_offset)
 
     # -------------------------- input ----------------------------------
-    def handle_input(self, data: bytes) -> bool:
+    # handle_input can be replaced at runtime with any callable
+    # If not set, _process_input is used as fallback
+
+    def _process_input(self, data: bytes) -> bool:
+        """Default input processing."""
         # bracketed paste payload: ESC[200~ ... ESC[201~
         if data.startswith(b"\x1b[200~") and data.endswith(b"\x1b[201~"):
             payload = data[len(b"\x1b[200~") : -len(b"\x1b[201~")]

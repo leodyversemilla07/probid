@@ -1,9 +1,9 @@
 import unittest
 
 from probid_tui.core import (
+    TUI,
     Container,
     OverlayOptions,
-    TUI,
     parse_key,
     split_input_sequences,
     truncate_to_width,

@@ -28,4 +28,3 @@ class CancellableLoader(Loader):
                 self.on_abort()
             return True
         return False
-

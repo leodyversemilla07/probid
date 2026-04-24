@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Generator
+from collections.abc import Callable, Generator
+from typing import Any
+
 import httplib2
 
 from probid_ai.client import APIError, BaseAIClient, getenv_or_raise
@@ -16,18 +18,19 @@ from probid_ai.types import (
     StreamChunk,
 )
 
-
 # Try to use probid auth storage, fall back to env vars
 try:
-    from probid_probing_agent.core.auth_storage import get_api_key as _get_probid_api_key
+    from probid_probing_agent.core.auth_storage import (
+        get_api_key as _get_probid_api_key,
+    )
 except ImportError:
-    _get_probid_api_key = None
+    _get_probid_api_key: Callable[[str], str] | None = None
 
 
 def _get_provider_api_key(provider: str = "anthropic") -> str:
     """Get API key for a provider, checking auth storage first."""
     provider = provider.strip().lower()
-    
+
     # Try auth storage first
     if _get_probid_api_key:
         key = _get_probid_api_key(provider)
@@ -38,7 +41,7 @@ def _get_provider_api_key(provider: str = "anthropic") -> str:
             key = _get_probid_api_key("opencode")
             if key:
                 return key
-    
+
     env_map = {
         "anthropic": "ANTHROPIC_API_KEY",
         "opencode": "OPENCODE_API_KEY",
@@ -54,7 +57,12 @@ def _get_provider_api_key(provider: str = "anthropic") -> str:
 class AnthropicClient(BaseAIClient):
     """Anthropic-compatible API client for OpenCode Zen and similar providers."""
 
-    def __init__(self, api_key: str | None = None, base_url: str | None = None, provider_name: str = "anthropic"):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        provider_name: str = "anthropic",
+    ):
         self._provider_name = provider_name
         super().__init__(api_key, base_url)
 
@@ -125,7 +133,7 @@ class AnthropicClient(BaseAIClient):
     def chat_completions(self, request: ChatCompletionRequest) -> ChatCompletionResponse:
         # Convert OpenAI-style request to Anthropic format
         url = f"{self.base_url}/v1/messages"
-        
+
         # Preserve all non-system turns and combine system prompts.
         system_parts: list[str] = []
         messages: list[dict[str, str]] = []
@@ -143,21 +151,19 @@ class AnthropicClient(BaseAIClient):
         if system_parts:
             payload["system"] = "\n\n".join(part for part in system_parts if part)
         if request.temperature is not None:
-            payload["temperature"] = request.temperature
+            payload["temperature"] = int(request.temperature)
 
         # Use httplib2 for proper header handling
         h = httplib2.Http()
         resp, content = h.request(url, "POST", body=json.dumps(payload), headers=self._headers())
-        
+
         if resp.status >= 400:
             raise APIError(f"API error: {content.decode('utf-8')}", resp.status)
-        
+
         data = json.loads(content.decode("utf-8"))
         return self._parse_response(data)
 
-    def chat_completions_stream(
-        self, request: ChatCompletionRequest
-    ) -> Generator[StreamChunk, None, None]:
+    def chat_completions_stream(self, request: ChatCompletionRequest) -> Generator[StreamChunk, None, None]:
         response = self.chat_completions(request)
         if not response.choices:
             return
@@ -167,6 +173,3 @@ class AnthropicClient(BaseAIClient):
             index=0,
             finish_reason=response.choices[0].finish_reason,
         )
-
-
-import os

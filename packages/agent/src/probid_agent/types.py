@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Protocol, TypedDict, runtime_checkable
+from typing import Any, Protocol, TypedDict, runtime_checkable
 
 
 class QueueUpdateEvent(TypedDict):
@@ -89,7 +90,7 @@ class PlanExecutionResult(TypedDict):
     tool_trace: list[ToolTraceItem]
 
 
-class ResponseEnvelope(TypedDict):
+class ResponseEnvelope(TypedDict, total=False):
     intent: str
     query: str
     assumptions: list[str]
@@ -98,6 +99,8 @@ class ResponseEnvelope(TypedDict):
     caveats: list[str]
     next_actions: list[str]
     tool_trace: list[ToolTraceItem]
+    llm_response: str | None
+    error: str | None
 
 
 @runtime_checkable
@@ -126,6 +129,8 @@ class SessionProtocol(Protocol):
     def has_queued_messages(self) -> bool: ...
 
     def prompt(self, user_input: str, runtime: Any) -> dict[str, Any]: ...
+
+    def _emit(self, event: dict[str, Any]) -> None: ...
 
 
 @runtime_checkable

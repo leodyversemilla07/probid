@@ -21,7 +21,7 @@ class ProxyExecutionTests(unittest.TestCase):
     def test_run_plan_execution_returns_structured_result(self):
         registry = _Registry()
         result = run_plan_execution(
-            {"steps": [{"tool": "probe", "args": {}, "cli_equivalent": "probid probe \"x\""}]},
+            {"steps": [{"tool": "probe", "args": {}, "cli_equivalent": 'probid probe "x"'}]},
             registry,
         )
 

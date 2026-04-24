@@ -1,6 +1,5 @@
 """Tests for JsonlSessionManager edge cases."""
 
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -54,7 +53,11 @@ class JsonlSessionManagerEdgeCaseTests(unittest.TestCase):
     def test_append_turn_and_read_roundtrip(self):
         session_id, path = self.manager.create_session()
 
-        turn = {"type": "turn", "user_input": "probe laptop", "result": {"intent": "probe"}}
+        turn = {
+            "type": "turn",
+            "user_input": "probe laptop",
+            "result": {"intent": "probe"},
+        }
         self.manager.append_turn(session_id, turn)
 
         rows = self.manager.read_session_file(path)

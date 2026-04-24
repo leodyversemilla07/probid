@@ -1,8 +1,8 @@
 """Smoke tests for probid CLI entrypoint."""
 
+import unittest
 from contextlib import contextmanager
 from pathlib import Path
-import unittest
 from unittest.mock import patch
 
 
@@ -60,14 +60,24 @@ class CliSmokeTests(unittest.TestCase):
 
         runner = CliRunner()
         with (
-            patch("probid_probing_agent.cli.commands.search.cache.connection", fake_connection),
+            patch(
+                "probid_probing_agent.cli.commands.search.cache.connection",
+                fake_connection,
+            ),
             patch(
                 "probid_probing_agent.cli.commands.search.geps.search",
                 return_value=[{"ref_no": "N1", "title": "Laptop notice", "agency": "DICT"}],
             ) as mock_search,
             patch(
                 "probid_probing_agent.cli.commands.search.geps.search_awards",
-                return_value=[{"ref_no": "A1", "project_title": "Laptop award", "agency": "DICT", "supplier": "ACME"}],
+                return_value=[
+                    {
+                        "ref_no": "A1",
+                        "project_title": "Laptop award",
+                        "agency": "DICT",
+                        "supplier": "ACME",
+                    }
+                ],
             ) as mock_search_awards,
             patch("probid_probing_agent.cli.commands.search.cache.upsert_notice") as mock_upsert_notice,
             patch("probid_probing_agent.cli.commands.search.cache.upsert_award") as mock_upsert_award,
@@ -245,7 +255,10 @@ class CliSmokeTests(unittest.TestCase):
         from probid_probing_agent.cli import cli
 
         runner = CliRunner()
-        with patch("probid_probing_agent.core.runtime.ProbidAgentRuntime.handle_input", side_effect=ValueError("Failed to parse LLM response")):
+        with patch(
+            "probid_probing_agent.core.runtime.ProbidAgentRuntime.handle_input",
+            side_effect=ValueError("Failed to parse LLM response"),
+        ):
             result = runner.invoke(cli, ["-q", "probe laptop", "--provider", "ai"])
 
         self.assertNotEqual(result.exit_code, 0)
@@ -258,7 +271,10 @@ class CliSmokeTests(unittest.TestCase):
         from probid_probing_agent.cli import cli
 
         runner = CliRunner()
-        with patch("probid_probing_agent.core.runtime.ProbidAgentRuntime.handle_input", side_effect=ValueError("Failed to parse LLM response")):
+        with patch(
+            "probid_probing_agent.core.runtime.ProbidAgentRuntime.handle_input",
+            side_effect=ValueError("Failed to parse LLM response"),
+        ):
             result = runner.invoke(cli, ["agent", "-q", "probe laptop", "--provider", "ai"])
 
         self.assertNotEqual(result.exit_code, 0)

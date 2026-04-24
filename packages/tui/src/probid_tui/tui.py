@@ -8,10 +8,7 @@ from typing import Any
 from rich.console import Console, Group
 from rich.layout import Layout
 from rich.panel import Panel
-from rich.text import Text
-from rich.style import Style
 from rich.table import Table
-
 
 console = Console()
 
@@ -138,14 +135,10 @@ class ProbidTUI:
         self.input_bar = InputBar()
 
     def add_user_message(self, content: str) -> None:
-        self.session.messages.append(
-            Message(role="user", content=content)
-        )
+        self.session.messages.append(Message(role="user", content=content))
 
     def add_assistant_message(self, content: str) -> None:
-        self.session.messages.append(
-            Message(role="assistant", content=content)
-        )
+        self.session.messages.append(Message(role="assistant", content=content))
 
     def render(self) -> None:
         """Render the full TUI."""
@@ -156,10 +149,12 @@ class ProbidTUI:
             Layout(name="main"),
         )
         layout["sidebar"].update(self.sidebar.render())
-        layout["main"].update(Group(
-            self.chat.render(),
-            self.input_bar.render(),
-        ))
+        layout["main"].update(
+            Group(
+                self.chat.render(),
+                self.input_bar.render(),
+            )
+        )
 
         console.print(layout)
 
@@ -185,7 +180,10 @@ if __name__ == "__main__":
     session = Session(model="gpt-4", provider="ai")
     session.messages = [
         Message(role="user", content="probe laptops for DICT"),
-        Message(role="assistant", content="I'll probe PhilGEPS for laptop procurement data for DICT..."),
+        Message(
+            role="assistant",
+            content="I'll probe PhilGEPS for laptop procurement data for DICT...",
+        ),
     ]
 
     tui = ProbidTUI(session)

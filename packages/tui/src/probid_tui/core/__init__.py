@@ -36,13 +36,13 @@ from probid_tui.core.keys import (
 from probid_tui.core.terminal import ProcessTerminal, Terminal
 from probid_tui.core.tui_runtime import (
     CURSOR_MARKER,
+    TUI,
     Container,
     OverlayAnchor,
     OverlayHandle,
     OverlayMargin,
     OverlayOptions,
     SizeValue,
-    TUI,
 )
 
 __all__ = [

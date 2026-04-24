@@ -489,14 +489,14 @@ def show_probe_next_checks(result: dict) -> None:
 
     lines = [
         "[bold]Suggested next checks:[/bold]",
-        f"- probid search \"{query}\" --detail",
+        f'- probid search "{query}" --detail',
         "- probid awards --cache-only",
         "- probid repeat --min-count 3",
-        "- probid split \"<agency>\" --gap-days 30",
-        f"- probid probe \"{query}\" --why",
-        f"- probid probe \"{query}\" --json",
-        f"- probid probe \"{query}\" --min-confidence medium",
-        f"- probid probe \"{query}\" --max-findings 3",
+        '- probid split "<agency>" --gap-days 30',
+        f'- probid probe "{query}" --why',
+        f'- probid probe "{query}" --json',
+        f'- probid probe "{query}" --min-confidence medium',
+        f'- probid probe "{query}" --max-findings 3',
     ]
 
     console.print(

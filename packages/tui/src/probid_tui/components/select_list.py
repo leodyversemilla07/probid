@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from probid_tui.core.ansi_utils import truncate_to_width, visible_width
 from probid_tui.core.component import Component
@@ -125,15 +125,36 @@ class SelectList(Component):
             return lines
 
         primary_column_width = self._get_primary_column_width()
-        start = max(0, min(self.index - (self.max_visible // 2), len(self._filtered_items) - self.max_visible))
+        start = max(
+            0,
+            min(
+                self.index - (self.max_visible // 2),
+                len(self._filtered_items) - self.max_visible,
+            ),
+        )
         end = min(start + self.max_visible, len(self._filtered_items))
 
         for i in range(start, end):
             item = self._filtered_items[i]
-            lines.append(self._render_item(item, is_selected=(i == self.index), width=width, primary_column_width=primary_column_width))
+            lines.append(
+                self._render_item(
+                    item,
+                    is_selected=(i == self.index),
+                    width=width,
+                    primary_column_width=primary_column_width,
+                )
+            )
 
         if start > 0 or end < len(self._filtered_items):
-            lines.append(self.theme.scroll_info(truncate_to_width(f"  ({self.index + 1}/{len(self._filtered_items)})", width - 2, pad=False)))
+            lines.append(
+                self.theme.scroll_info(
+                    truncate_to_width(
+                        f"  ({self.index + 1}/{len(self._filtered_items)})",
+                        width - 2,
+                        pad=False,
+                    )
+                )
+            )
         return lines
 
     def _render_item(self, item: SelectItem, is_selected: bool, width: int, primary_column_width: int) -> str:

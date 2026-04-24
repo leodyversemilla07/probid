@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 
 from probid_ai.types import (
     ChatCompletionRequest,
     ChatCompletionResponse,
-    Message,
     StreamChunk,
 )
 
@@ -55,9 +55,7 @@ class BaseAIClient(ABC):
         pass
 
     @abstractmethod
-    def chat_completions_stream(
-        self, request: ChatCompletionRequest
-    ) -> Generator[StreamChunk, None, None]:
+    def chat_completions_stream(self, request: ChatCompletionRequest) -> Generator[StreamChunk, None, None]:
         """Streaming chat completion."""
         pass
 

@@ -20,14 +20,45 @@ from probid_probing_agent.cli.output import resolve_output_text
 @click.group(invoke_without_command=True)
 @click.version_option("0.1.0", prog_name="probid")
 @click.option("-q", "query", help="Run one one-shot harness query and exit")
-@click.option("--json-output", is_flag=True, help="Render the full one-shot result envelope as JSON")
-@click.option("--export-output", is_flag=True, help="Render only export content from an export-oriented follow-up; export audit follow-ups stay in the full explain envelope")
-@click.option("--output", "output_path", default=None, type=click.Path(), help="Write rendered output to a file instead of stdout")
+@click.option(
+    "--json-output",
+    is_flag=True,
+    help="Render the full one-shot result envelope as JSON",
+)
+@click.option(
+    "--export-output",
+    is_flag=True,
+    help="Render only export content from an export-oriented follow-up; export audit follow-ups stay in the full explain envelope",
+)
+@click.option(
+    "--output",
+    "output_path",
+    default=None,
+    type=click.Path(),
+    help="Write rendered output to a file instead of stdout",
+)
 @click.option("--db-path", default=None, help="Override the SQLite cache database path")
-@click.option("--provider", default="deterministic", show_default=True, help="Select the harness provider implementation")
-@click.option("--session-dir", default=None, help="Override the persisted harness session directory")
-@click.option("--continue-recent", is_flag=True, help="Resume the most recent persisted harness session")
-@click.option("--tui/--no-tui", default=True, help="Open the interactive TUI instead of the plain REPL")
+@click.option(
+    "--provider",
+    default="deterministic",
+    show_default=True,
+    help="Select the harness provider implementation",
+)
+@click.option(
+    "--session-dir",
+    default=None,
+    help="Override the persisted harness session directory",
+)
+@click.option(
+    "--continue-recent",
+    is_flag=True,
+    help="Resume the most recent persisted harness session",
+)
+@click.option(
+    "--tui/--no-tui",
+    default=True,
+    help="Open the interactive TUI instead of the plain REPL",
+)
 @click.pass_context
 def cli(
     ctx: click.Context,
@@ -54,7 +85,10 @@ def cli(
         raise click.UsageError("Cannot use -q/--query together with a subcommand.")
 
     if query:
-        from probid_probing_agent.core.runtime import InvalidProviderError, ProbidAgentRuntime
+        from probid_probing_agent.core.runtime import (
+            InvalidProviderError,
+            ProbidAgentRuntime,
+        )
 
         try:
             runtime = ProbidAgentRuntime(
@@ -86,7 +120,10 @@ def cli(
         return
 
     if ctx.invoked_subcommand is None:
-        from probid_probing_agent.core.runtime import InvalidProviderError, ProbidAgentRuntime
+        from probid_probing_agent.core.runtime import (
+            InvalidProviderError,
+            ProbidAgentRuntime,
+        )
 
         try:
             runtime = ProbidAgentRuntime(
@@ -105,6 +142,7 @@ def cli(
             run_interactive(runtime, model="gpt-4", provider=provider)
         else:
             from probid_probing_agent.modes.interactive.repl import run_agent_repl
+
             run_agent_repl(runtime)
 
 

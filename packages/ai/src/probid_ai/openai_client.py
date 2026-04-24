@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Generator
-from urllib.request import Request, urlopen
+import os
+from collections.abc import Callable, Generator
+from typing import Any
 from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 
 from probid_ai.client import APIError, BaseAIClient, getenv_or_raise
 from probid_ai.types import (
@@ -20,7 +22,12 @@ from probid_ai.types import (
 class OpenAIClient(BaseAIClient):
     """OpenAI-compatible API client (works with OpenAI, Anthropic via adapter, etc.)."""
 
-    def __init__(self, api_key: str | None = None, base_url: str | None = None, provider_name: str = "openai"):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        provider_name: str = "openai",
+    ):
         self._provider_name = provider_name
         super().__init__(api_key, base_url)
 
@@ -83,7 +90,12 @@ class OpenAIClient(BaseAIClient):
             "stream": False,
         }
 
-        req = Request(url, data=json.dumps(payload).encode("utf-8"), headers=self._headers(), method="POST")
+        req = Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=self._headers(),
+            method="POST",
+        )
         try:
             with urlopen(req) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
@@ -93,9 +105,7 @@ class OpenAIClient(BaseAIClient):
 
         return self._parse_response(data)
 
-    def chat_completions_stream(
-        self, request: ChatCompletionRequest
-    ) -> Generator[StreamChunk, None, None]:
+    def chat_completions_stream(self, request: ChatCompletionRequest) -> Generator[StreamChunk, None, None]:
         url = f"{self.base_url}/chat/completions"
         payload = {
             "model": request.model,
@@ -105,7 +115,12 @@ class OpenAIClient(BaseAIClient):
             "stream": True,
         }
 
-        req = Request(url, data=json.dumps(payload).encode("utf-8"), headers=self._headers(), method="POST")
+        req = Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=self._headers(),
+            method="POST",
+        )
         try:
             with urlopen(req) as resp:
                 for line in resp:
@@ -121,14 +136,13 @@ class OpenAIClient(BaseAIClient):
             raise APIError(f"API error: {body}", e.code) from e
 
 
-import os
-
-
 # Try to use probid auth storage, fall back to env vars
 try:
-    from probid_probing_agent.core.auth_storage import get_api_key as _get_probid_api_key
+    from probid_probing_agent.core.auth_storage import (
+        get_api_key as _get_probid_api_key,
+    )
 except ImportError:
-    _get_probid_api_key = None
+    _get_probid_api_key: Callable[[str], str] | None = None
 
 
 def _get_provider_api_key(provider: str = "openai") -> str:
@@ -138,7 +152,7 @@ def _get_provider_api_key(provider: str = "openai") -> str:
         key = _get_probid_api_key(provider)
         if key:
             return key
-    
+
     # Fall back to env vars
     env_map = {
         "opencode": "OPENCODE_API_KEY",

@@ -24,7 +24,12 @@ def maybe_launch_pi_tui() -> bool:
     Returns True if control was handed to pi (process finished), False if caller
     should use internal fallback TUI.
     """
-    if os.environ.get("PROBID_FORCE_INTERNAL_TUI", "0").strip() in {"1", "true", "yes", "on"}:
+    if os.environ.get("PROBID_FORCE_INTERNAL_TUI", "0").strip() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
         return False
 
     if not (sys.stdin.isatty() and sys.stdout.isatty()):

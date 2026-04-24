@@ -1,11 +1,25 @@
 import unittest
 
 from probid_agent.errors import ProviderRegistryError
-from probid_agent.provider_registry import Provider, clear_providers, register_provider, require_provider
+from probid_agent.provider_registry import (
+    Provider,
+    clear_providers,
+    register_provider,
+    require_provider,
+)
 
 
 def _handler(_input, _runtime):
-    return {"intent": "probe", "query": "x", "assumptions": [], "evidence": [], "findings": [], "caveats": [], "next_actions": [], "tool_trace": []}
+    return {
+        "intent": "probe",
+        "query": "x",
+        "assumptions": [],
+        "evidence": [],
+        "findings": [],
+        "caveats": [],
+        "next_actions": [],
+        "tool_trace": [],
+    }
 
 
 class ProviderRegistryTests(unittest.TestCase):

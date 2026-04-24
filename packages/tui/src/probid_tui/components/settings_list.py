@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from probid_tui.components.select_list import SelectItem, SelectList, SelectListTheme
 
@@ -54,13 +54,17 @@ class SettingsList(SelectList):
             if item.id == item_id:
                 item.current_value = new_value
         self._all_items = [
-            SelectItem(value=item.id, label=f"{item.label}: {item.current_value}", description=item.description)
+            SelectItem(
+                value=item.id,
+                label=f"{item.label}: {item.current_value}",
+                description=item.description,
+            )
             for item in self._settings_items
         ]
         self.set_filter("")
 
     def handle_input(self, data: bytes) -> bool:
-        key = super().handle_input(data)
+        key = super()._process_input(data)
         if key:
             return True
         from probid_tui.core.keys import parse_key
@@ -82,4 +86,3 @@ class SettingsList(SelectList):
             self._on_cancel()
             return True
         return False
-

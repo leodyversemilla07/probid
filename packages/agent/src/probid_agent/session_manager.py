@@ -32,9 +32,7 @@ class JsonlSessionManager:
                 {
                     "session_id": path.stem,
                     "path": path,
-                    "modified_at": datetime.fromtimestamp(path.stat().st_mtime, UTC)
-                    .isoformat()
-                    .replace("+00:00", "Z"),
+                    "modified_at": datetime.fromtimestamp(path.stat().st_mtime, UTC).isoformat().replace("+00:00", "Z"),
                 }
             )
         return sessions

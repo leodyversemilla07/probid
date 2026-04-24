@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from probid_agent.types import DomainResponsePolicy, ResponseEnvelope, ToolTraceItem
-
 
 EnvelopeEnricher = Callable[[ResponseEnvelope, dict[str, Any]], None]
 

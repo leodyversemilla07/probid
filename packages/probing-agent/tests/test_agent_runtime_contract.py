@@ -5,8 +5,8 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from probid_probing_agent.core.session import AgentSessionLogger
 from probid_probing_agent.core.data import cache
+from probid_probing_agent.core.session import AgentSessionLogger
 
 
 class AgentRuntimeContractTests(unittest.TestCase):
@@ -156,12 +156,23 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_cli_query_mode_can_export_recent_json_content_only(self):
         from probid_probing_agent.cli import cli
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+        ):
             self._seed_db(tmp.name)
             runner = CliRunner()
             first = runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             second = runner.invoke(
                 cli,
@@ -186,12 +197,23 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_cli_query_mode_can_export_recent_markdown_content_only(self):
         from probid_probing_agent.cli import cli
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+        ):
             self._seed_db(tmp.name)
             runner = CliRunner()
             runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             result = runner.invoke(
                 cli,
@@ -214,15 +236,25 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_cli_query_mode_can_write_export_to_file(self):
         from probid_probing_agent.cli import cli
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp, tempfile.NamedTemporaryFile(
-            suffix=".md", delete=False
-        ) as out:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            tempfile.NamedTemporaryFile(suffix=".md", delete=False) as out,
+        ):
             out_path = out.name
             self._seed_db(tmp.name)
             runner = CliRunner()
             runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             result = runner.invoke(
                 cli,
@@ -248,15 +280,25 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_cli_query_mode_infers_json_when_export_written_to_json_file(self):
         from probid_probing_agent.cli import cli
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp, tempfile.NamedTemporaryFile(
-            suffix=".json", delete=False
-        ) as out:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            tempfile.NamedTemporaryFile(suffix=".json", delete=False) as out,
+        ):
             out_path = out.name
             self._seed_db(tmp.name)
             runner = CliRunner()
             runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             result = runner.invoke(
                 cli,
@@ -282,15 +324,25 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_cli_query_mode_can_write_csv_export_to_csv_file(self):
         from probid_probing_agent.cli import cli
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp, tempfile.NamedTemporaryFile(
-            suffix=".csv", delete=False
-        ) as out:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as out,
+        ):
             out_path = out.name
             self._seed_db(tmp.name)
             runner = CliRunner()
             runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             result = runner.invoke(
                 cli,
@@ -311,21 +363,31 @@ class AgentRuntimeContractTests(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         content = Path(out_path).read_text()
         self.assertIn("section,detail", content)
-        self.assertIn('top_finding,', content)
+        self.assertIn("top_finding,", content)
 
     def test_cli_export_writes_artifact_metadata_to_session_log(self):
         from probid_probing_agent.cli import cli
         from probid_probing_agent.core.session_manager import ProbidSessionManager
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp, tempfile.NamedTemporaryFile(
-            suffix=".json", delete=False
-        ) as out:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            tempfile.NamedTemporaryFile(suffix=".json", delete=False) as out,
+        ):
             out_path = out.name
             self._seed_db(tmp.name)
             runner = CliRunner()
             runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             result = runner.invoke(
                 cli,
@@ -358,17 +420,29 @@ class AgentRuntimeContractTests(unittest.TestCase):
         self.assertTrue(artifact["content_sha256"])
         self.assertTrue(artifact["origin_turn_id"])
 
-    def test_cli_query_mode_rejects_mismatched_reexport_alias_without_export_content(self):
+    def test_cli_query_mode_rejects_mismatched_reexport_alias_without_export_content(
+        self,
+    ):
         from probid_probing_agent.cli import cli
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp, tempfile.NamedTemporaryFile(
-            suffix=".json", delete=False
-        ) as out:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            tempfile.NamedTemporaryFile(suffix=".json", delete=False) as out,
+        ):
             self._seed_db(tmp.name)
             runner = CliRunner()
             runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             runner.invoke(
                 cli,
@@ -402,19 +476,33 @@ class AgentRuntimeContractTests(unittest.TestCase):
             )
 
         self.assertNotEqual(result.exit_code, 0)
-        self.assertIn("Query did not produce export content. Run an export-oriented follow-up first.", result.output)
+        self.assertIn(
+            "Query did not produce export content. Run an export-oriented follow-up first.",
+            result.output,
+        )
 
     def test_cli_query_mode_can_reexport_last_markdown_report_to_new_file(self):
         from probid_probing_agent.cli import cli
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp, tempfile.NamedTemporaryFile(
-            suffix=".md", delete=False
-        ) as first_out, tempfile.NamedTemporaryFile(suffix=".md", delete=False) as second_out:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            tempfile.NamedTemporaryFile(suffix=".md", delete=False) as first_out,
+            tempfile.NamedTemporaryFile(suffix=".md", delete=False) as second_out,
+        ):
             self._seed_db(tmp.name)
             runner = CliRunner()
             runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             first = runner.invoke(
                 cli,
@@ -454,14 +542,25 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_cli_query_mode_can_reexport_last_artifact_to_new_file(self):
         from probid_probing_agent.cli import cli
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp, tempfile.NamedTemporaryFile(
-            suffix=".json", delete=False
-        ) as first_out, tempfile.NamedTemporaryFile(suffix=".json", delete=False) as second_out:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            tempfile.NamedTemporaryFile(suffix=".json", delete=False) as first_out,
+            tempfile.NamedTemporaryFile(suffix=".json", delete=False) as second_out,
+        ):
             self._seed_db(tmp.name)
             runner = CliRunner()
             runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             first = runner.invoke(
                 cli,
@@ -501,14 +600,24 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_cli_exports_command_can_render_json_rows(self):
         from probid_probing_agent.cli import cli
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp, tempfile.NamedTemporaryFile(
-            suffix=".json", delete=False
-        ) as out:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            tempfile.NamedTemporaryFile(suffix=".json", delete=False) as out,
+        ):
             self._seed_db(tmp.name)
             runner = CliRunner()
             runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             runner.invoke(
                 cli,
@@ -559,14 +668,24 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_cli_query_mode_rejects_markdown_export_to_json_file(self):
         from probid_probing_agent.cli import cli
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp, tempfile.NamedTemporaryFile(
-            suffix=".json", delete=False
-        ) as out:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            tempfile.NamedTemporaryFile(suffix=".json", delete=False) as out,
+        ):
             self._seed_db(tmp.name)
             runner = CliRunner()
             runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             result = runner.invoke(
                 cli,
@@ -585,19 +704,32 @@ class AgentRuntimeContractTests(unittest.TestCase):
             )
 
         self.assertNotEqual(result.exit_code, 0)
-        self.assertIn("Text export should be written to .md, .csv, or stdout, not .json.", result.output)
+        self.assertIn(
+            "Text export should be written to .md, .csv, or stdout, not .json.",
+            result.output,
+        )
 
     def test_cli_query_mode_rejects_structured_export_to_markdown_file(self):
         from probid_probing_agent.cli import cli
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp, tempfile.NamedTemporaryFile(
-            suffix=".md", delete=False
-        ) as out:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            tempfile.NamedTemporaryFile(suffix=".md", delete=False) as out,
+        ):
             self._seed_db(tmp.name)
             runner = CliRunner()
             runner.invoke(
                 cli,
-                ["-q", "probe laptop awards", "--db-path", tmp.name, "--session-dir", td, "--json-output"],
+                [
+                    "-q",
+                    "probe laptop awards",
+                    "--db-path",
+                    tmp.name,
+                    "--session-dir",
+                    td,
+                    "--json-output",
+                ],
             )
             result = runner.invoke(
                 cli,
@@ -616,7 +748,10 @@ class AgentRuntimeContractTests(unittest.TestCase):
             )
 
         self.assertNotEqual(result.exit_code, 0)
-        self.assertIn("Structured export should be written to .json, and CSV export should be written to .csv.", result.output)
+        self.assertIn(
+            "Structured export should be written to .json, and CSV export should be written to .csv.",
+            result.output,
+        )
 
     def test_cli_query_mode_rejects_subcommand_combo(self):
         from probid_probing_agent.cli import cli
@@ -664,7 +799,10 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_runtime_persists_session_turns_and_can_continue_recent(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+        ):
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(
                 db_path=tmp.name,
@@ -683,10 +821,15 @@ class AgentRuntimeContractTests(unittest.TestCase):
         self.assertEqual(continued.session.session_id, first["session_id"])
         self.assertGreaterEqual(len(continued.session.messages), 2)
 
-    def test_continued_session_restores_structured_memory_for_explanatory_followups(self):
+    def test_continued_session_restores_structured_memory_for_explanatory_followups(
+        self,
+    ):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+        ):
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(
                 db_path=tmp.name,
@@ -713,7 +856,10 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_continued_session_restores_export_metadata_for_followups(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+        ):
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(
                 db_path=tmp.name,
@@ -740,7 +886,10 @@ class AgentRuntimeContractTests(unittest.TestCase):
         self.assertEqual(result["tool_trace"], [])
         self.assertIn("/tmp/probid-export.json", result["findings"][0]["summary"])
         self.assertEqual(continued.session.investigation_context.get("last_export_format"), "json")
-        self.assertEqual(continued.session.investigation_context.get("last_export_path"), "/tmp/probid-export.json")
+        self.assertEqual(
+            continued.session.investigation_context.get("last_export_path"),
+            "/tmp/probid-export.json",
+        )
 
     def test_session_followup_mismatched_reexport_alias_returns_no_export(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
@@ -758,7 +907,10 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_reexports_last_markdown_report_from_session_log(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+        ):
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(
                 db_path=tmp.name,
@@ -789,7 +941,10 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_reexports_last_artifact_from_session_log(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.TemporaryDirectory() as td, tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with (
+            tempfile.TemporaryDirectory() as td,
+            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+        ):
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(
                 db_path=tmp.name,
@@ -975,7 +1130,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
             result = runtime.handle_input("show only high confidence")
 
         self.assertEqual(result["intent"], "probe")
-        self.assertIn('--min-confidence high', result["tool_trace"][0]["cli_equivalent"])
+        self.assertIn("--min-confidence high", result["tool_trace"][0]["cli_equivalent"])
         self.assertIn('--agency "DICT"', result["tool_trace"][0]["cli_equivalent"])
 
     def test_session_followup_detail_first_ref_uses_previous_probe(self):
@@ -1309,7 +1464,10 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         self.assertEqual(result["intent"], "explain")
         self.assertEqual(result["tool_trace"], [])
-        self.assertIn("Limited local data may reduce detection reliability.", result["export"]["content"])
+        self.assertIn(
+            "Limited local data may reduce detection reliability.",
+            result["export"]["content"],
+        )
         self.assertNotIn("JSON:", result["export"]["content"])
 
     def test_session_followup_markdown_report(self):
@@ -1404,7 +1562,12 @@ class AgentRuntimeContractTests(unittest.TestCase):
             logger = AgentSessionLogger(path=Path(tmp.name))
             turn_id = logger.log_turn(
                 "probe laptop",
-                {"intent": "probe", "query": "laptop", "tool_trace": [], "findings": []},
+                {
+                    "intent": "probe",
+                    "query": "laptop",
+                    "tool_trace": [],
+                    "findings": [],
+                },
             )
             row = logger.get_record(turn_id)
 

@@ -11,7 +11,6 @@ from probid_tui.components import (
     Box,
     CancellableLoader,
     DefaultTextStyle,
-    Editor as EditorComponent,
     EditorOptions,
     EditorTheme,
     Image,
@@ -33,8 +32,13 @@ from probid_tui.components import (
     Text,
     TruncatedText,
 )
+from probid_tui.components import (
+    Editor as EditorComponent,
+)
 from probid_tui.core import (
     CURSOR_MARKER,
+    LEGACY_KEYS,
+    TUI,
     Component,
     Container,
     Editor,
@@ -42,22 +46,20 @@ from probid_tui.core import (
     Key,
     KeyEventType,
     KeyId,
-    LEGACY_KEYS,
     OverlayAnchor,
     OverlayHandle,
     OverlayMargin,
     OverlayOptions,
     ProcessTerminal,
     SizeValue,
-    TUI,
     Terminal,
     decode_kitty_printable,
     decodeKittyPrintable,
     is_focusable,
-    isFocusable,
     is_key_release,
     is_key_repeat,
     is_kitty_protocol_active,
+    isFocusable,
     isKeyRelease,
     isKeyRepeat,
     isKittyProtocolActive,
@@ -91,8 +93,15 @@ from probid_tui.display import (
     render_table_data,
 )
 from probid_tui.editor_surface import EditorSurface, EditorSurfaceConfig
-from probid_tui.fuzzy import FuzzyMatch, fuzzy_filter, fuzzy_match, fuzzyFilter, fuzzyMatch
+from probid_tui.fuzzy import (
+    FuzzyMatch,
+    fuzzy_filter,
+    fuzzy_match,
+    fuzzyFilter,
+    fuzzyMatch,
+)
 from probid_tui.keybindings import (
+    TUI_KEYBINDINGS,
     Keybinding,
     KeybindingConflict,
     KeybindingDefinition,
@@ -100,7 +109,6 @@ from probid_tui.keybindings import (
     Keybindings,
     KeybindingsConfig,
     KeybindingsManager,
-    TUI_KEYBINDINGS,
     get_keybindings,
     getKeybindings,
     set_keybindings,
@@ -161,7 +169,15 @@ from probid_tui.theme import (
     panelize,
     styles,
 )
-from probid_tui.tui import ChatView, InputBar, Message, ProbidTUI, Session, Sidebar, create_tui
+from probid_tui.tui import (
+    ChatView,
+    InputBar,
+    Message,
+    ProbidTUI,
+    Session,
+    Sidebar,
+    create_tui,
+)
 
 # Parity aliases
 AutocompleteResult = AutocompleteSuggestions

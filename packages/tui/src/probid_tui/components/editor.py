@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from probid_tui.autocomplete import AutocompleteProvider
 from probid_tui.core.editor import Editor as CoreEditor
@@ -22,7 +22,12 @@ class EditorOptions:
 
 
 class Editor(CoreEditor):
-    def __init__(self, tui=None, theme: EditorTheme | None = None, options: EditorOptions | None = None):
+    def __init__(
+        self,
+        tui=None,
+        theme: EditorTheme | None = None,
+        options: EditorOptions | None = None,
+    ):
         opts = options or EditorOptions()
         super().__init__(max_visible_lines=5)
         self.tui = tui
@@ -78,9 +83,8 @@ class Editor(CoreEditor):
 
     def handle_input(self, data: bytes) -> bool:
         before = self.get_value()
-        consumed = super().handle_input(data)
+        consumed = super()._process_input(data)
         after = self.get_value()
         if consumed and after != before and self.onChange is not None:
             self.onChange(after)
         return consumed
-

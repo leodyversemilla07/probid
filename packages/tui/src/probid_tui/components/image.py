@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from probid_tui.core.component import Component
-from probid_tui.terminal_image import ImageRenderOptions, image_fallback, render_image
+from probid_tui.terminal_image import ImageRenderOptions, render_image
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,13 @@ class ImageOptions:
 
 
 class Image(Component):
-    def __init__(self, base64_data: str, mime_type: str, theme: ImageTheme | None = None, options: ImageOptions | None = None):
+    def __init__(
+        self,
+        base64_data: str,
+        mime_type: str,
+        theme: ImageTheme | None = None,
+        options: ImageOptions | None = None,
+    ):
         self.base64_data = base64_data
         self.mime_type = mime_type
         self.theme = theme or ImageTheme()
@@ -41,4 +47,3 @@ class Image(Component):
         if rendered.startswith("[image"):
             rendered = self.theme.fallback_color(rendered)
         return [rendered[: max(1, width)]]
-

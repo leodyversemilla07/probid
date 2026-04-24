@@ -3,7 +3,13 @@
 import unittest
 
 from probid_web_ui.render import escape_html, format_currency_html, render_notices_table
-from probid_web_ui.types import AgencyProfile, AwardRecord, Finding, NoticeData, ProbeResult, SupplierProfile
+from probid_web_ui.types import (
+    AgencyProfile,
+    Finding,
+    NoticeData,
+    ProbeResult,
+    SupplierProfile,
+)
 
 
 class WebUITypesTests(unittest.TestCase):

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from probid_agent.response_composer import BaseResponseComposer
 from probid_agent.types import ResponseEnvelope, ToolTraceItem
-
 from probid_probing_agent.core.response_policy import ProcurementResponsePolicy
 
 

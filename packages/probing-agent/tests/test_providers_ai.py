@@ -1,7 +1,7 @@
 """Tests for AI provider integration."""
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from probid_probing_agent.core.providers_ai import (
     AIModelProvider,
@@ -14,18 +14,16 @@ from probid_probing_agent.core.providers_ai import (
 class AIProviderTests(unittest.TestCase):
     def _runtime_stub(self):
         runtime = MagicMock()
-        runtime._compose_response.side_effect = (
-            lambda plan, payload, tool_trace: {
-                "intent": plan.get("intent", "unknown"),
-                "query": plan.get("query", ""),
-                "assumptions": [],
-                "evidence": [],
-                "findings": [],
-                "caveats": [],
-                "next_actions": [],
-                "tool_trace": tool_trace,
-            }
-        )
+        runtime._compose_response.side_effect = lambda plan, payload, tool_trace: {
+            "intent": plan.get("intent", "unknown"),
+            "query": plan.get("query", ""),
+            "assumptions": [],
+            "evidence": [],
+            "findings": [],
+            "caveats": [],
+            "next_actions": [],
+            "tool_trace": tool_trace,
+        }
         runtime._validate_plan.side_effect = lambda plan: None
         runtime.db_path = None
         runtime.session = MagicMock()
@@ -50,9 +48,7 @@ class AIProviderTests(unittest.TestCase):
         # Setup mock
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content="not valid json"))
-        ]
+        mock_response.choices = [MagicMock(message=MagicMock(content="not valid json"))]
         mock_client.chat_completions.return_value = mock_response
         mock_client_cls.return_value = mock_client
 
@@ -67,9 +63,7 @@ class AIProviderTests(unittest.TestCase):
         # Setup mock
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(message=MagicMock(content='{"steps": []}'))
-        ]
+        mock_response.choices = [MagicMock(message=MagicMock(content='{"steps": []}'))]
         mock_client.chat_completions.return_value = mock_response
         mock_client_cls.return_value = mock_client
 
@@ -133,11 +127,22 @@ class AIProviderTests(unittest.TestCase):
         provider = AIModelProvider(client=mock_client)
         mock_runtime = self._runtime_stub()
 
-        with patch("probid_probing_agent.core.providers_ai.cache.connection") as mock_connection, patch(
-            "probid_probing_agent.core.providers_ai.build_tool_registry"
-        ) as mock_registry_builder, patch(
-            "probid_probing_agent.core.providers_ai.execute_plan_steps",
-            return_value=({}, [{"tool": "probe", "status": "success", "cli_equivalent": 'probid probe "laptop" --pages 1 --min-confidence low --max-findings 5 --agency "DICT"'}]),
+        with (
+            patch("probid_probing_agent.core.providers_ai.cache.connection") as mock_connection,
+            patch("probid_probing_agent.core.providers_ai.build_tool_registry") as mock_registry_builder,
+            patch(
+                "probid_probing_agent.core.providers_ai.execute_plan_steps",
+                return_value=(
+                    {},
+                    [
+                        {
+                            "tool": "probe",
+                            "status": "success",
+                            "cli_equivalent": 'probid probe "laptop" --pages 1 --min-confidence low --max-findings 5 --agency "DICT"',
+                        }
+                    ],
+                ),
+            ),
         ):
             mock_connection.return_value.__enter__.return_value = object()
             mock_registry_builder.return_value = MagicMock()
@@ -153,7 +158,11 @@ class AIProviderTests(unittest.TestCase):
         mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.choices = [
-            MagicMock(message=MagicMock(content='{"intent": "probe", "query": "laptop", "steps": [{"tool": "delete_db", "args": {}}]}'))
+            MagicMock(
+                message=MagicMock(
+                    content='{"intent": "probe", "query": "laptop", "steps": [{"tool": "delete_db", "args": {}}]}'
+                )
+            )
         ]
         mock_client.chat_completions.return_value = mock_response
 

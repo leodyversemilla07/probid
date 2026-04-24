@@ -7,7 +7,6 @@ from typing import Any
 
 from probid_ai.types import Model
 
-
 _MODELS: dict[str, dict[str, Model]] = {
     "anthropic": {
         "claude-opus-4-6": Model(

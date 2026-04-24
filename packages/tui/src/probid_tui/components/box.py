@@ -39,4 +39,3 @@ class Box(Container):
         for _ in range(self.padding_y):
             lines.append(self._bg(" " * width))
         return lines
-

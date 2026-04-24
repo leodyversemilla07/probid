@@ -1,6 +1,5 @@
 """AI provider client layer for probid."""
 
-from probid_ai.client import APIError, BaseAIClient, getenv_or_raise
 from probid_ai.api_registry import (
     ApiProvider,
     clear_api_providers,
@@ -9,6 +8,7 @@ from probid_ai.api_registry import (
     register_api_provider,
     unregister_api_providers,
 )
+from probid_ai.client import APIError, BaseAIClient, getenv_or_raise
 from probid_ai.env_api_keys import get_env_api_key
 from probid_ai.models import (
     calculate_cost,

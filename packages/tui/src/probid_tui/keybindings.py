@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypedDict
 
-
 Keybinding = str
 KeybindingsConfig = dict[str, str | list[str] | None]
 
@@ -98,4 +97,3 @@ def get_keybindings() -> KeybindingsManager:
 # pi-tui style aliases
 setKeybindings = set_keybindings
 getKeybindings = get_keybindings
-

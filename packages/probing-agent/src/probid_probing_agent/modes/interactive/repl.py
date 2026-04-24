@@ -24,6 +24,7 @@ REPL_COMMANDS = [
     "/exit",
 ]
 
+
 def _print_help() -> None:
     click.echo("Commands: " + ", ".join(REPL_COMMANDS))
 
@@ -31,8 +32,7 @@ def _print_help() -> None:
 def _print_banner() -> None:
     display.console.print(
         Panel(
-            "probid minimal terminal probing agent harness\n"
-            "Enter query text to run a probe. Use /help for commands.",
+            "probid minimal terminal probing agent harness\nEnter query text to run a probe. Use /help for commands.",
             title="probid",
             border_style="cyan",
         )
@@ -84,11 +84,11 @@ def run_agent_repl(runtime: ProbidAgentRuntime) -> None:
             )
             continue
         if cmd.startswith("/steer "):
-            runtime.session.steer(user_input[len("/steer "):])
+            runtime.session.steer(user_input[len("/steer ") :])
             click.echo("Queued steering message.")
             continue
         if cmd.startswith("/followup "):
-            runtime.session.follow_up(user_input[len("/followup "):])
+            runtime.session.follow_up(user_input[len("/followup ") :])
             click.echo("Queued follow-up message.")
             continue
         if cmd == "/clear":

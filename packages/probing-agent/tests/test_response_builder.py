@@ -112,14 +112,20 @@ class ResponseBuilderTests(unittest.TestCase):
             intent="overprice",
             query="laptop",
             payload=payload,
-            tool_trace=[{"tool": "overprice", "status": "success", "cli_equivalent": 'probid overprice "laptop" --threshold 200', "payload": payload}],
+            tool_trace=[
+                {
+                    "tool": "overprice",
+                    "status": "success",
+                    "cli_equivalent": 'probid overprice "laptop" --threshold 200',
+                    "payload": payload,
+                }
+            ],
         )
 
         self.assertIn("overprice_result_count=1", result["evidence"])
         self.assertIn("overprice_threshold_pct=200", result["evidence"])
         self.assertTrue(any("Top budget-spread candidate" in finding["summary"] for finding in result["findings"]))
         self.assertIn('probid probe "laptop" --why', result["next_actions"])
-
 
     def test_build_probe_includes_finding_evidence_for_explanation_memory(self):
         builder = ResponseBuilder()
@@ -143,11 +149,21 @@ class ResponseBuilderTests(unittest.TestCase):
             intent="probe",
             query="laptop",
             payload=payload,
-            tool_trace=[{"tool": "probe", "status": "success", "cli_equivalent": 'probid probe "laptop"', "payload": payload}],
+            tool_trace=[
+                {
+                    "tool": "probe",
+                    "status": "success",
+                    "cli_equivalent": 'probid probe "laptop"',
+                    "payload": payload,
+                }
+            ],
             fallback_next_actions=lambda q: [f'probid probe "{q}" --why'],
         )
 
-        self.assertEqual(result["findings"][0]["summary"], "ACME CORP won 3 awards across 1 agencies.")
+        self.assertEqual(
+            result["findings"][0]["summary"],
+            "ACME CORP won 3 awards across 1 agencies.",
+        )
         self.assertEqual(result["findings"][0]["evidence"]["supplier"], "ACME CORP")
 
 

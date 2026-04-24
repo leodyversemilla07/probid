@@ -5,15 +5,18 @@ from __future__ import annotations
 import json
 import os
 import re
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, cast
 
-from probid_ai import ChatCompletionRequest, Message
-from probid_ai.openai_client import OpenAIClient
-from probid_ai.anthropic_client import AnthropicClient
 from probid_agent.proxy import execute_plan_steps
-from probid_agent.types import ExecutionPlan, ToolTraceItem
+from probid_agent.types import ExecutionPlan, ResponseEnvelope
+from probid_ai import ChatCompletionRequest, Message
+from probid_ai.anthropic_client import AnthropicClient
+from probid_ai.openai_client import OpenAIClient
 from probid_probing_agent.core.data import cache
-from probid_probing_agent.core.model_resolver import resolve_default_model, resolve_default_temperature
+from probid_probing_agent.core.model_resolver import (
+    resolve_default_model,
+    resolve_default_temperature,
+)
 from probid_probing_agent.core.planner import normalize_plan, supported_tools
 from probid_probing_agent.core.tools import build_tool_registry
 
@@ -30,16 +33,16 @@ if TYPE_CHECKING:
     from probid_agent.types import ProviderRuntimeProtocol
 
 
-def _get_client_for_model(model: str) -> Union[OpenAIClient, AnthropicClient]:
+def _get_client_for_model(model: str) -> OpenAIClient | AnthropicClient:
     """Get the appropriate client for a model."""
     model_lower = model.lower().strip()
-    
+
     # Check if model uses Anthropic-compatible API
     if model_lower in ANTHROPIC_COMPATIBLE_MODELS:
         # Use Anthropic client with OpenCode Zen base URL
         base_url = os.environ.get("OPENCODE_BASE_URL", "https://opencode.ai/zen")
         return AnthropicClient(base_url=base_url, provider_name="opencode")
-    
+
     # Default to OpenAI client
     base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
     return OpenAIClient(base_url=base_url, provider_name="openai")
@@ -86,17 +89,15 @@ class AIModelProvider:
         self,
         model: str | None = None,
         temperature: float | None = None,
-        client: Union[OpenAIClient, AnthropicClient] | None = None,
+        client: OpenAIClient | AnthropicClient | None = None,
     ):
         self.model = model or resolve_default_model()
-        self.temperature = (
-            resolve_default_temperature() if temperature is None else temperature
-        )
+        self.temperature = resolve_default_temperature() if temperature is None else temperature
         # Auto-select client based on model if not provided
         self.client = client or _get_client_for_model(self.model)
         self.system_prompt = _build_system_prompt()
 
-    def handle(self, user_input: str, runtime: "ProviderRuntimeProtocol") -> dict[str, Any]:
+    def handle(self, user_input: str, runtime: ProviderRuntimeProtocol) -> ResponseEnvelope:
         """Handle user input by generating a plan via LLM."""
         messages = [
             Message(role="system", content=self.system_prompt),
@@ -126,15 +127,16 @@ class AIModelProvider:
             if not isinstance(plan.get("steps"), list):
                 raise ValueError("Plan 'steps' must be a list")
             plan = normalize_plan(plan)
-            runtime._validate_plan(plan)
+            typed_plan: ExecutionPlan = cast(ExecutionPlan, plan)
+            runtime._validate_plan(typed_plan)
         except json.JSONDecodeError as exc:
             raise ValueError(f"Failed to parse LLM response: {exc}") from exc
 
         with cache.connection(db_path=runtime.db_path) as conn:
             registry = build_tool_registry(conn)
-            payload, tool_trace = execute_plan_steps(plan, registry, event_sink=runtime.session._emit)
+            payload, tool_trace = execute_plan_steps(typed_plan, registry, event_sink=cast(Any, runtime.session._emit))
 
-        envelope = runtime._compose_response(plan=plan, payload=payload, tool_trace=tool_trace)
+        envelope = runtime._compose_response(plan=typed_plan, payload=payload, tool_trace=tool_trace)
         envelope["llm_response"] = llm_content
         return envelope
 
@@ -143,11 +145,11 @@ _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.IGNORECASE | re.DO
 
 
 def _error_response(
-    runtime: "ProviderRuntimeProtocol",
+    runtime: ProviderRuntimeProtocol,
     user_input: str,
     error: str,
     llm_response: str,
-) -> dict[str, Any]:
+) -> ResponseEnvelope:
     plan: ExecutionPlan = {"intent": "error", "query": user_input, "steps": []}
     envelope = runtime._compose_response(plan=plan, payload=None, tool_trace=[])
     envelope["error"] = error
@@ -190,7 +192,7 @@ def supported_ai_tools() -> list[str]:
     return sorted(supported_tools())
 
 
-def handle_ai(user_input: str, runtime: "ProviderRuntimeProtocol") -> dict[str, Any]:
+def handle_ai(user_input: str, runtime: ProviderRuntimeProtocol) -> ResponseEnvelope:
     """AI provider handler function."""
     provider = AIModelProvider()
     return provider.handle(user_input, runtime)

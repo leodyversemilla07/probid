@@ -11,4 +11,3 @@ class Spacer(Component):
 
     def render(self, width: int) -> list[str]:
         return [" " * max(1, width) for _ in range(self.lines)]
-

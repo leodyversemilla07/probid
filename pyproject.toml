@@ -14,6 +14,10 @@ dependencies = [
 browser = [
     "playwright>=1.58,<2",
 ]
+dev = [
+    "ruff>=0.11,<1",
+    "ty>=0.0.1-alpha.9,<0.1",
+]
 
 [project.scripts]
 probid = "probid_probing_agent.cli:cli"
@@ -22,6 +26,63 @@ probid = "probid_probing_agent.cli:cli"
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501", # line-too-long - handled by formatting
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["probid_probing_agent", "probid_agent", "probid_ai", "probid_tui"]
+
+[tool.ty]
+environment.python-version = "3.12"
+environment.extra-paths = [
+    "packages/probing-agent/src",
+    "packages/agent/src",
+    "packages/ai/src",
+    "packages/tui/src",
+    "packages/web-ui/src",
+]
+src.include = [
+    "packages/probing-agent/src",
+    "packages/agent/src",
+    "packages/ai/src",
+    "packages/tui/src",
+    "packages/web-ui/src",
+]
+src.exclude = [
+    "**/tests/**",
+    "**/test_*.py",
+]
+terminal.output-format = "concise"
+
+[[tool.ty.overrides]]
+include = ["**/*.py"]
+
+[tool.ty.overrides.analysis]
+allowed-unresolved-imports = [
+    "playwright.**",
+    "termios",
+    "tty",
+    "fcntl",
+    "signal",
+]
+
+[tool.ty.overrides.rules]
+# Warn on unresolved references instead of error
+possibly-unresolved-reference = "warn"
+
 [tool.setuptools.packages.find]
 where = [
     "packages/ai/src",
@@ -29,6 +90,4 @@ where = [
     "packages/probing-agent/src",
     "packages/tui/src",
     "packages/web-ui/src",
-    "packages/mom/src",
-    "packages/pods/src",
 ]

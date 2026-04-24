@@ -69,9 +69,7 @@ def register_search_commands(cli: click.Group) -> None:
                         try:
                             detail_result = geps.get_notice_detail(result["ref_no"])
                             merged = {**result, **detail_result}
-                            merged["documents"] = detail_result.get(
-                                "documents", result.get("documents", [])
-                            )
+                            merged["documents"] = detail_result.get("documents", result.get("documents", []))
                             cache.upsert_notice(conn, merged)
                             display.show_notice_detail(merged)
                         except Exception as e:
@@ -92,7 +90,13 @@ def register_search_commands(cli: click.Group) -> None:
         show_default=True,
         help="Only include findings at or above this confidence",
     )
-    @click.option("--max-findings", type=int, default=5, show_default=True, help="Maximum findings to return")
+    @click.option(
+        "--max-findings",
+        type=int,
+        default=5,
+        show_default=True,
+        help="Maximum findings to return",
+    )
     @click.option("--cache-only", is_flag=True, help="Use local cache only (no live scraping)")
     def probe(
         query: str,
@@ -156,9 +160,7 @@ def register_search_commands(cli: click.Group) -> None:
         """
         with cache.connection() as conn:
             if not force:
-                cached = conn.execute(
-                    "SELECT * FROM notices WHERE ref_no = ?", (ref_id,)
-                ).fetchone()
+                cached = conn.execute("SELECT * FROM notices WHERE ref_no = ?", (ref_id,)).fetchone()
                 if cached:
                     display.info("Showing cached data (use --force to re-fetch)")
                     detail_data = dict(cached)
@@ -190,8 +192,7 @@ def register_search_commands(cli: click.Group) -> None:
         """
         pages_count = 10_000 if fetch_all else max(1, pages)
         display.info(
-            "Fetching agency list from PhilGEPS..."
-            + (" all pages" if fetch_all else f" {pages_count} page(s)")
+            "Fetching agency list from PhilGEPS..." + (" all pages" if fetch_all else f" {pages_count} page(s)")
         )
 
         def on_progress(current_page: int, total_pages: int, total_rows: int) -> None:

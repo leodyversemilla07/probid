@@ -2,17 +2,19 @@
 
 from __future__ import annotations
 
-from probid_web_ui.types import AgencyProfile, AwardRecord, Finding, NoticeData, ProbeResult, SearchResult, SupplierProfile
+from probid_web_ui.types import (
+    AgencyProfile,
+    AwardRecord,
+    Finding,
+    NoticeData,
+    ProbeResult,
+    SupplierProfile,
+)
 
 
 def escape_html(text: str) -> str:
     """Escape HTML special characters."""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
 def format_currency_html(amount: float | None, currency: str = "PHP") -> str:
@@ -32,8 +34,8 @@ def render_notice_row(notice: NoticeData) -> str:
     """Render a notice as an HTML table row."""
     return f"""<tr>
     <td>{escape_html(notice.ref_id)}</td>
-    <td>{escape_html(notice.title or '')}</td>
-    <td>{escape_html(notice.published_date or '—')}</td>
+    <td>{escape_html(notice.title or "")}</td>
+    <td>{escape_html(notice.published_date or "—")}</td>
     <td>{format_currency_html(notice.budget)}</td>
 </tr>"""
 
@@ -85,7 +87,7 @@ def render_probe_result(result: ProbeResult) -> str:
     </div>
     <div class="findings">
         <h3>Findings ({len(result.findings)})</h3>
-        {findings_html if findings_html else '<p>No findings.</p>'}
+        {findings_html if findings_html else "<p>No findings.</p>"}
     </div>
 </div>"""
 

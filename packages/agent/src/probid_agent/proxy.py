@@ -5,7 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from probid_agent.errors import PlanValidationError
-from probid_agent.types import EventSink, ExecutionPlan, PlanExecutionResult, ToolTraceItem
+from probid_agent.types import (
+    EventSink,
+    ExecutionPlan,
+    PlanExecutionResult,
+    ToolTraceItem,
+)
 
 
 def validate_plan_contract(plan: ExecutionPlan) -> None:

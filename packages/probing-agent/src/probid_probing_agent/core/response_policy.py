@@ -56,7 +56,9 @@ class ProcurementResponsePolicy:
                 envelope["evidence"].append(f"{tool}_rows={len(payload)}")
                 if tool == "awards" and payload:
                     agencies = {row.get("agency", "") for row in payload if isinstance(row, dict) and row.get("agency")}
-                    suppliers = {row.get("supplier", "") for row in payload if isinstance(row, dict) and row.get("supplier")}
+                    suppliers = {
+                        row.get("supplier", "") for row in payload if isinstance(row, dict) and row.get("supplier")
+                    }
                     if agencies:
                         envelope["evidence"].append(f"awards_agencies={len(agencies)}")
                     if suppliers:

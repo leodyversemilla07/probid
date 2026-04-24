@@ -2,7 +2,7 @@
 
 import unittest
 
-from probid_tui.components.table import format_currency, create_table, TableConfig
+from probid_tui.components.table import TableConfig, create_table, format_currency
 from probid_tui.editor_surface import EditorSurface
 from probid_tui.theme import ThemeColors, ThemeStyles, apply_style, get_theme
 

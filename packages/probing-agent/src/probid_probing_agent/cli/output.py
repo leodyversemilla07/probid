@@ -7,7 +7,6 @@ from pathlib import Path
 
 import click
 
-
 _TEXT_EXPORT_FORMATS = {"markdown", "timeline", "findings_table", "csv"}
 _MARKDOWN_EXPORT_FORMATS = {"markdown", "timeline", "findings_table"}
 
@@ -34,7 +33,9 @@ def resolve_output_text(
 
         if suffix in {".md", ".markdown"}:
             if export_format not in _MARKDOWN_EXPORT_FORMATS or not isinstance(export_content, str):
-                raise click.UsageError("Structured export should be written to .json, and CSV export should be written to .csv.")
+                raise click.UsageError(
+                    "Structured export should be written to .json, and CSV export should be written to .csv."
+                )
             return export_content
 
         if suffix == ".csv":

@@ -8,14 +8,32 @@ from typing import Any
 from probid_agent.agent_loop import BaseAgentSession
 from probid_agent.session_logger import JsonlTurnLogger
 
-
 _REEXPORT_FORMAT_ALIASES: dict[str, set[str]] = {
-    "json": {"re-export the last json export", "re-export last json export", "re-export the last json artifact"},
-    "markdown": {"re-export the last markdown report", "re-export last markdown report", "re-export the last markdown export"},
-    "csv": {"re-export the last csv summary", "re-export last csv summary", "re-export the last csv export"},
+    "json": {
+        "re-export the last json export",
+        "re-export last json export",
+        "re-export the last json artifact",
+    },
+    "markdown": {
+        "re-export the last markdown report",
+        "re-export last markdown report",
+        "re-export the last markdown export",
+    },
+    "csv": {
+        "re-export the last csv summary",
+        "re-export last csv summary",
+        "re-export the last csv export",
+    },
     "timeline": {"re-export the last case timeline", "re-export last case timeline"},
-    "findings_table": {"re-export the last findings table", "re-export last findings table"},
-    "handoff": {"re-export the last handoff note", "re-export last handoff note", "re-export the last analyst handoff"},
+    "findings_table": {
+        "re-export the last findings table",
+        "re-export last findings table",
+    },
+    "handoff": {
+        "re-export the last handoff note",
+        "re-export last handoff note",
+        "re-export the last analyst handoff",
+    },
     "case_summary": {"re-export the last case summary", "re-export last case summary"},
 }
 
@@ -80,8 +98,8 @@ class ProbidAgentSession(BaseAgentSession):
         if steering:
             effective_input = effective_input + "\n\n[Queued steering]\n" + "\n".join(f"- {item}" for item in steering)
         if follow_up:
-            effective_input = effective_input + "\n\n[Queued follow-up]\n" + "\n".join(
-                f"- {item}" for item in follow_up
+            effective_input = (
+                effective_input + "\n\n[Queued follow-up]\n" + "\n".join(f"- {item}" for item in follow_up)
             )
 
         self.is_streaming = True
@@ -131,7 +149,7 @@ class ProbidAgentSession(BaseAgentSession):
         return response
 
     def _split_context_items(self, value: str, limit: int | None = None) -> list[str]:
-        items = [item for item in (value or "").split(" || ") if item]
+        items: list[str] = [item for item in (value or "").split(" || ") if item]
         return items[:limit] if limit is not None else items
 
     def _summary_findings(self, *lines: str) -> list[dict[str, str]]:
@@ -149,7 +167,7 @@ class ProbidAgentSession(BaseAgentSession):
         export: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         assumptions = [assumption] if isinstance(assumption, str) else list(assumption)
-        response = {
+        response: dict[str, Any] = {
             "intent": "explain",
             "query": query,
             "assumptions": assumptions,
@@ -275,7 +293,15 @@ class ProbidAgentSession(BaseAgentSession):
         next_items = memory["next_items"]
         top_ref_id = memory["top_ref_id"]
 
-        if self._prompt_is(prompt, "explain the top finding", "explain top finding", "what does the top finding mean?") and top_summary:
+        if (
+            self._prompt_is(
+                prompt,
+                "explain the top finding",
+                "explain top finding",
+                "what does the top finding mean?",
+            )
+            and top_summary
+        ):
             return self._explain_response(
                 query=query,
                 assumption=[
@@ -288,7 +314,11 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=[f'probid probe "{query}" --why' if query else 'probid probe "<query>" --why'],
             )
 
-        if self._prompt_is(prompt, "what evidence supports that?", "what evidence supports the top finding?") and (top_evidence or last_evidence):
+        if self._prompt_is(
+            prompt,
+            "what evidence supports that?",
+            "what evidence supports the top finding?",
+        ) and (top_evidence or last_evidence):
             return self._explain_response(
                 query=query,
                 assumption="Evidence is replayed from the last completed investigation turn.",
@@ -308,7 +338,12 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=[f'probid probe "{query}" --min-confidence high'] if query else [],
             )
 
-        if self._prompt_is(prompt, "summarize the last result simply", "summarize the last result", "summarize simply") and (top_summary or last_evidence):
+        if self._prompt_is(
+            prompt,
+            "summarize the last result simply",
+            "summarize the last result",
+            "summarize simply",
+        ) and (top_summary or last_evidence):
             simple = top_summary or "Last result summarized from the prior investigation turn."
             return self._explain_response(
                 query=query,
@@ -319,7 +354,11 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=[f'probid probe "{query}" --why'] if query else [],
             )
 
-        if self._prompt_is(prompt, "compare the top two findings", "compare top two findings") and top_summary and second_summary:
+        if (
+            self._prompt_is(prompt, "compare the top two findings", "compare top two findings")
+            and top_summary
+            and second_summary
+        ):
             return self._explain_response(
                 query=query,
                 assumption="Comparison is based on the ranked findings from the last investigation turn.",
@@ -329,7 +368,14 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=next_items[:2],
             )
 
-        if self._prompt_is(prompt, "show only the caveats for the top finding", "top finding caveats") and last_caveats:
+        if (
+            self._prompt_is(
+                prompt,
+                "show only the caveats for the top finding",
+                "top finding caveats",
+            )
+            and last_caveats
+        ):
             return self._explain_response(
                 query=query,
                 assumption="Caveats reflect the last completed investigation turn.",
@@ -339,7 +385,15 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=next_items[:1],
             )
 
-        if self._prompt_is(prompt, "which finding is strongest?", "which finding is strongest", "strongest finding?") and top_summary:
+        if (
+            self._prompt_is(
+                prompt,
+                "which finding is strongest?",
+                "which finding is strongest",
+                "strongest finding?",
+            )
+            and top_summary
+        ):
             return self._explain_response(
                 query=query,
                 assumption="Strength follows the current ranking in the last investigation turn.",
@@ -349,7 +403,15 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=next_items[:1],
             )
 
-        if self._prompt_is(prompt, "what should i check next?", "what should i check next", "next checks?") and last_next_actions:
+        if (
+            self._prompt_is(
+                prompt,
+                "what should i check next?",
+                "what should i check next",
+                "next checks?",
+            )
+            and last_next_actions
+        ):
             return self._explain_response(
                 query=query,
                 assumption="Next checks are replayed from the prior investigation turn.",
@@ -381,7 +443,15 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=next_items[:1],
             )
 
-        if self._prompt_is(prompt, "write that for a non-technical reader", "explain that for a non-technical reader", "plain english version") and top_summary:
+        if (
+            self._prompt_is(
+                prompt,
+                "write that for a non-technical reader",
+                "explain that for a non-technical reader",
+                "plain english version",
+            )
+            and top_summary
+        ):
             plain = f"In simple terms: {top_summary}"
             return self._explain_response(
                 query=query,
@@ -392,7 +462,12 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=next_items[:1],
             )
 
-        if self._prompt_is(prompt, "turn that into a checklist", "make that a checklist", "checklist version") and (top_summary or last_next_actions):
+        if self._prompt_is(
+            prompt,
+            "turn that into a checklist",
+            "make that a checklist",
+            "checklist version",
+        ) and (top_summary or last_next_actions):
             checklist = []
             if top_summary:
                 checklist.append(f"Review finding: {top_summary}")
@@ -406,7 +481,15 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=checklist[:5],
             )
 
-        if self._prompt_is(prompt, "what is the safest next command to run?", "safest next command?", "safest next step?") and last_next_actions:
+        if (
+            self._prompt_is(
+                prompt,
+                "what is the safest next command to run?",
+                "safest next command?",
+                "safest next step?",
+            )
+            and last_next_actions
+        ):
             safe_next = next((item for item in next_items if item), "")
             return self._explain_response(
                 query=query,
@@ -428,7 +511,12 @@ class ProbidAgentSession(BaseAgentSession):
         caveat_items = memory["caveat_items"]
         next_items = memory["next_items"]
 
-        if self._prompt_is(prompt, "turn this into an investigation note", "investigation note", "draft an investigation note") and (top_summary or last_evidence):
+        if self._prompt_is(
+            prompt,
+            "turn this into an investigation note",
+            "investigation note",
+            "draft an investigation note",
+        ) and (top_summary or last_evidence):
             note_lines = [
                 f"Subject: Procurement probe for {query or 'current scope'}",
                 f"Top finding: {top_summary}" if top_summary else "Top finding: unavailable",
@@ -444,7 +532,9 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=next_items[:3],
             )
 
-        if self._prompt_is(prompt, "draft a short memo", "short memo", "write a short memo") and (top_summary or last_evidence):
+        if self._prompt_is(prompt, "draft a short memo", "short memo", "write a short memo") and (
+            top_summary or last_evidence
+        ):
             memo = [
                 f"Memo: Review of procurement probe for {query or 'current scope'}.",
                 f"Key point: {top_summary}" if top_summary else "Key point: unavailable.",
@@ -460,7 +550,11 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=next_items[:2],
             )
 
-        if self._prompt_is(prompt, "format this as findings, evidence, caveats, next steps", "format as findings evidence caveats next steps") and (top_summary or last_evidence or last_next_actions):
+        if self._prompt_is(
+            prompt,
+            "format this as findings, evidence, caveats, next steps",
+            "format as findings evidence caveats next steps",
+        ) and (top_summary or last_evidence or last_next_actions):
             structured = []
             if top_summary:
                 structured.append(f"Findings: {top_summary}")
@@ -479,7 +573,9 @@ class ProbidAgentSession(BaseAgentSession):
                 next_actions=next_items[:3],
             )
 
-        if self._prompt_is(prompt, "turn this into json", "make this json", "export json") and (top_summary or last_evidence or last_next_actions):
+        if self._prompt_is(prompt, "turn this into json", "make this json", "export json") and (
+            top_summary or last_evidence or last_next_actions
+        ):
             json_blob = {
                 "query": query,
                 "top_finding": top_summary,
@@ -498,7 +594,12 @@ class ProbidAgentSession(BaseAgentSession):
                 export_content=json_blob,
             )
 
-        if self._prompt_is(prompt, "make this a markdown report", "markdown report", "export markdown report") and (top_summary or last_evidence):
+        if self._prompt_is(
+            prompt,
+            "make this a markdown report",
+            "markdown report",
+            "export markdown report",
+        ) and (top_summary or last_evidence):
             report_evidence = evidence_items[:3]
             report_caveats = caveat_items[:2]
             report_next = next_items[:3]
@@ -524,7 +625,12 @@ class ProbidAgentSession(BaseAgentSession):
                 export_content=markdown_content,
             )
 
-        if self._prompt_is(prompt, "export a compact case summary", "compact case summary", "case summary") and (top_summary or last_evidence):
+        if self._prompt_is(
+            prompt,
+            "export a compact case summary",
+            "compact case summary",
+            "case summary",
+        ) and (top_summary or last_evidence):
             summary = f"Case summary: {top_summary}" if top_summary else "Case summary unavailable."
             return self._export_followup_response(
                 query=query,
@@ -543,7 +649,9 @@ class ProbidAgentSession(BaseAgentSession):
                 },
             )
 
-        if self._prompt_is(prompt, "export a csv summary", "csv summary", "export csv summary") and (top_summary or last_evidence or last_next_actions):
+        if self._prompt_is(prompt, "export a csv summary", "csv summary", "export csv summary") and (
+            top_summary or last_evidence or last_next_actions
+        ):
             csv_lines = [
                 "section,detail",
                 f'query,"{query}"',
@@ -564,7 +672,9 @@ class ProbidAgentSession(BaseAgentSession):
                 export_content=csv_content,
             )
 
-        if self._prompt_is(prompt, "make this a case timeline", "case timeline", "export case timeline") and (top_summary or last_evidence or last_next_actions):
+        if self._prompt_is(prompt, "make this a case timeline", "case timeline", "export case timeline") and (
+            top_summary or last_evidence or last_next_actions
+        ):
             timeline_lines = [
                 f"# Case Timeline: {query or 'Current Scope'}",
                 f"1. Probe scope established: {query or 'unspecified'}.",
@@ -588,7 +698,12 @@ class ProbidAgentSession(BaseAgentSession):
                 export_content=timeline_content,
             )
 
-        if self._prompt_is(prompt, "turn this into a findings table", "findings table", "export findings table") and (top_summary or last_evidence or last_next_actions):
+        if self._prompt_is(
+            prompt,
+            "turn this into a findings table",
+            "findings table",
+            "export findings table",
+        ) and (top_summary or last_evidence or last_next_actions):
             table_lines = [
                 "| Section | Details |",
                 "| --- | --- |",
@@ -613,7 +728,12 @@ class ProbidAgentSession(BaseAgentSession):
                 export_content=table_content,
             )
 
-        if self._prompt_is(prompt, "generate a handoff note for another analyst", "handoff note", "analyst handoff") and (top_summary or last_evidence or last_next_actions):
+        if self._prompt_is(
+            prompt,
+            "generate a handoff note for another analyst",
+            "handoff note",
+            "analyst handoff",
+        ) and (top_summary or last_evidence or last_next_actions):
             handoff_next = next_items[:3]
             handoff = [
                 f"Handoff: current scope is {query or 'unspecified'}.",
@@ -639,11 +759,18 @@ class ProbidAgentSession(BaseAgentSession):
 
         return None
 
-    def _export_artifact_for_prompt(self, prompt: str, last_export_artifact: dict[str, Any] | None) -> dict[str, Any] | None:
+    def _export_artifact_for_prompt(
+        self, prompt: str, last_export_artifact: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
         if not isinstance(last_export_artifact, dict):
             return None
         export_format = str(last_export_artifact.get("export_format", "")).strip().lower()
-        if self._prompt_is(prompt, "re-export the last artifact", "re-export last artifact", "re-export the last structured artifact"):
+        if self._prompt_is(
+            prompt,
+            "re-export the last artifact",
+            "re-export last artifact",
+            "re-export the last structured artifact",
+        ):
             return last_export_artifact
         if prompt in _REEXPORT_FORMAT_ALIASES.get(export_format, set()):
             return last_export_artifact
@@ -657,7 +784,12 @@ class ProbidAgentSession(BaseAgentSession):
         recent_exports = memory["recent_exports"]
         last_export_artifact = memory["last_export_artifact"]
 
-        if self._prompt_is(prompt, "show last export destination", "last export destination", "where did the last export go?") and (last_export_destination or last_export_path):
+        if self._prompt_is(
+            prompt,
+            "show last export destination",
+            "last export destination",
+            "where did the last export go?",
+        ) and (last_export_destination or last_export_path):
             destination = last_export_path or last_export_destination
             return self._audit_followup_response(
                 query=query,
@@ -665,14 +797,30 @@ class ProbidAgentSession(BaseAgentSession):
                 findings_lines=[f"Last export destination: {destination}"],
             )
 
-        if self._prompt_is(prompt, "what was the last export format?", "last export format", "show last export format") and last_export_format:
+        if (
+            self._prompt_is(
+                prompt,
+                "what was the last export format?",
+                "last export format",
+                "show last export format",
+            )
+            and last_export_format
+        ):
             return self._audit_followup_response(
                 query=query,
                 assumption="Export format is replayed from the persisted session artifact log.",
                 findings_lines=[f"Last export format: {last_export_format}"],
             )
 
-        if self._prompt_is(prompt, "list prior exports", "show prior exports", "what exports have i made?") and recent_exports:
+        if (
+            self._prompt_is(
+                prompt,
+                "list prior exports",
+                "show prior exports",
+                "what exports have i made?",
+            )
+            and recent_exports
+        ):
             return self._audit_followup_response(
                 query=query,
                 assumption="Prior exports are replayed from the persisted session artifact log.",
@@ -827,8 +975,12 @@ class ProbidAgentSession(BaseAgentSession):
                 if args.get("supplier"):
                     context["supplier"] = str(args["supplier"])
                 if isinstance(payload, list) and payload:
-                    ref_candidates = [str(item.get("ref_no")) for item in payload if isinstance(item, dict) and item.get("ref_no")]
-                    supplier_candidates = [str(item.get("supplier")) for item in payload if isinstance(item, dict) and item.get("supplier")]
+                    ref_candidates = [
+                        str(item.get("ref_no")) for item in payload if isinstance(item, dict) and item.get("ref_no")
+                    ]
+                    supplier_candidates = [
+                        str(item.get("supplier")) for item in payload if isinstance(item, dict) and item.get("supplier")
+                    ]
                     if ref_candidates:
                         deduped_refs = list(dict.fromkeys(ref_candidates))
                         context["top_ref_id"] = deduped_refs[0]

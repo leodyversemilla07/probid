@@ -31,7 +31,7 @@ def _read_auth_file() -> dict[str, Any]:
     if not auth_path.exists():
         return {}
     try:
-        with open(auth_path, "r", encoding="utf-8") as f:
+        with open(auth_path, encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError as exc:
         raise ValueError(f"Malformed auth file at '{auth_path}'") from exc
@@ -53,14 +53,14 @@ def _write_auth_file(data: dict[str, Any]) -> None:
 
 def get_api_key(provider: str) -> str | None:
     """Get API key for a provider.
-    
+
     Priority:
     1. Runtime override (check os.environ for provider-specific key)
     2. auth.json file storage
     3. Environment variable
     """
     provider = provider.strip().lower()
-    
+
     # Provider-specific env var takes highest priority
     env_map = {
         "opencode": "OPENCODE_API_KEY",
@@ -72,11 +72,11 @@ def get_api_key(provider: str) -> str | None:
     env_var = env_map.get(provider)
     if env_var and os.environ.get(env_var):
         return os.environ.get(env_var)
-    
+
     # Also check generic OPENAI_API_KEY as fallback for opencode
     if provider == "opencode" and os.environ.get("OPENAI_API_KEY"):
         return os.environ.get("OPENAI_API_KEY")
-    
+
     # Check auth.json file
     auth_data = _read_auth_file()
     if provider in auth_data:
@@ -85,7 +85,7 @@ def get_api_key(provider: str) -> str | None:
             return cred["key"]
         elif isinstance(cred, str):
             return cred
-    
+
     # Fall back to env var
     if env_var:
         return os.environ.get(env_var)

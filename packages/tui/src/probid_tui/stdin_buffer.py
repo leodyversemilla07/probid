@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Literal, TypedDict
+from typing import Literal, TypedDict
 
 from probid_tui.core.keys import split_input_sequences
 
@@ -24,7 +25,10 @@ EventName = Literal["data", "paste"]
 class StdinBuffer:
     def __init__(self, options: StdinBufferOptions | None = None):
         self.options = options or StdinBufferOptions()
-        self._listeners: dict[str, list[Callable[[str], None]]] = {"data": [], "paste": []}
+        self._listeners: dict[str, list[Callable[[str], None]]] = {
+            "data": [],
+            "paste": [],
+        }
         self._buffer = b""
 
     def on(self, event: EventName, listener: Callable[[str], None]) -> None:
@@ -64,4 +68,3 @@ class StdinBuffer:
     def destroy(self) -> None:
         self._listeners = {"data": [], "paste": []}
         self._buffer = b""
-

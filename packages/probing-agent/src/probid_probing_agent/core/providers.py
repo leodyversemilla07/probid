@@ -2,30 +2,28 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from probid_agent.provider_runner import DeterministicProviderAdapter
 from probid_agent.proxy import execute_plan_steps
 from probid_probing_agent.core.data import cache
-
 from probid_probing_agent.core.planner import plan_for_input
 from probid_probing_agent.core.provider_registry import Provider, register_provider
+from probid_probing_agent.core.providers_ai import handle_ai
 from probid_probing_agent.core.tools import build_tool_registry
 
-from probid_probing_agent.core.providers_ai import handle_ai
-
 if TYPE_CHECKING:
-    from probid_agent.types import ExecutionPlan, ProviderRuntimeProtocol, ToolTraceItem
+    from probid_agent.types import ExecutionPlan, ProviderRuntimeProtocol, ResponseEnvelope, ToolTraceItem
 
 
-def _validate_plan(runtime: "ProviderRuntimeProtocol", plan: "ExecutionPlan") -> None:
+def _validate_plan(runtime: ProviderRuntimeProtocol, plan: ExecutionPlan) -> None:
     runtime._validate_plan(plan)
 
 
-def _run_plan(runtime: "ProviderRuntimeProtocol", plan: "ExecutionPlan") -> tuple[Any, list["ToolTraceItem"]]:
+def _run_plan(runtime: ProviderRuntimeProtocol, plan: ExecutionPlan) -> tuple[Any, list[ToolTraceItem]]:
     with cache.connection(db_path=runtime.db_path) as conn:
         registry = build_tool_registry(conn)
-        return execute_plan_steps(plan, registry, event_sink=runtime.session._emit)
+        return execute_plan_steps(plan, registry, event_sink=cast(Any, runtime.session._emit))
 
 
 _deterministic = DeterministicProviderAdapter(
@@ -34,7 +32,7 @@ _deterministic = DeterministicProviderAdapter(
 )
 
 
-def handle_deterministic(user_input: str, runtime: "ProviderRuntimeProtocol") -> dict[str, Any]:
+def handle_deterministic(user_input: str, runtime: ProviderRuntimeProtocol) -> ResponseEnvelope:
     return _deterministic.handle(user_input, runtime)
 
 

@@ -1,6 +1,11 @@
 import unittest
 
-from probid_tui.components.select_list import SelectItem, SelectList, SelectListLayoutOptions, SelectListTheme
+from probid_tui.components.select_list import (
+    SelectItem,
+    SelectList,
+    SelectListLayoutOptions,
+    SelectListTheme,
+)
 from probid_tui.core.ansi_utils import visible_width
 
 
@@ -106,7 +111,10 @@ class SelectListParityTests(unittest.TestCase):
         )
         rendered = list_view.render(80)
         self.assertIn("…", rendered[0])
-        self.assertEqual(_visible_index_of(rendered[0], "first"), _visible_index_of(rendered[1], "second"))
+        self.assertEqual(
+            _visible_index_of(rendered[0], "first"),
+            _visible_index_of(rendered[1], "second"),
+        )
 
 
 if __name__ == "__main__":

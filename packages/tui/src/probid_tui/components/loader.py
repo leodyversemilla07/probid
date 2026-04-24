@@ -42,4 +42,3 @@ class Loader(Text):
         body = self.message_style(self.message)
         self.set_text(f"{spinner} {body}")
         return super().render(width)
-

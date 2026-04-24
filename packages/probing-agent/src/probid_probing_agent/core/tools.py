@@ -105,7 +105,13 @@ def build_tool_registry(conn) -> ToolRegistry:
             ToolSpec(
                 name="probe",
                 description="Run a summary-first procurement probe with explainable findings.",
-                parameters=("query", "pages", "min_confidence", "max_findings", "agency"),
+                parameters=(
+                    "query",
+                    "pages",
+                    "min_confidence",
+                    "max_findings",
+                    "agency",
+                ),
                 handler=adapter.probe,
             ),
             ToolSpec(

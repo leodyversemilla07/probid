@@ -43,4 +43,3 @@ class Text(Component):
         for _ in range(self._padding_y):
             out.append(self._bg(" " * width))
         return out
-

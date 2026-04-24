@@ -7,7 +7,6 @@ import os
 import struct
 from dataclasses import dataclass
 
-
 ImageProtocol = str | None  # "kitty" | "iterm2" | None
 
 
@@ -184,7 +183,11 @@ def get_image_dimensions(base64_data: str, mime_type: str) -> ImageDimensions | 
     return None
 
 
-def image_fallback(mime_type: str, dimensions: ImageDimensions | None = None, filename: str | None = None) -> str:
+def image_fallback(
+    mime_type: str,
+    dimensions: ImageDimensions | None = None,
+    filename: str | None = None,
+) -> str:
     dim = f" {dimensions.width}x{dimensions.height}" if dimensions else ""
     name = f" {filename}" if filename else ""
     return f"[image{dim}{name} {mime_type}]"
@@ -226,4 +229,3 @@ getWebpDimensions = get_webp_dimensions
 getImageDimensions = get_image_dimensions
 renderImage = render_image
 imageFallback = image_fallback
-

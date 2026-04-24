@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 
 def find_repeat_awardees(conn: sqlite3.Connection, min_count: int = 3) -> list[dict]:
@@ -107,9 +107,7 @@ def detect_split_contracts(
             continue
 
         for threshold in thresholds:
-            near_threshold = [
-                a for a in group if threshold * 0.7 <= a.get("award_amount", 0) < threshold
-            ]
+            near_threshold = [a for a in group if threshold * 0.7 <= a.get("award_amount", 0) < threshold]
 
             if len(near_threshold) < 2:
                 continue
@@ -289,7 +287,13 @@ def analyze_probe_findings(
     awards = [dict(r) for r in conn.execute(base_awards_sql, award_params).fetchall()]
 
     records_scanned = len(notices) + len(awards)
-    agencies_touched = len({*(n.get("agency", "") for n in notices), *(a.get("agency", "") for a in awards)} - {""})
+    agencies_touched = len(
+        {
+            *(n.get("agency", "") for n in notices),
+            *(a.get("agency", "") for a in awards),
+        }
+        - {""}
+    )
     total_known_value = sum((a.get("award_amount", 0) or 0) for a in awards)
 
     if len(awards) < 5 and len(notices) < 10:
@@ -375,13 +379,13 @@ def analyze_probe_findings(
                     "supplier": supplier,
                     "award_count": award_count,
                     "agency_count": agency_count,
-                    "total_value": row.get("total_value", 0) or 0,
+                    "total_value": float(row.get("total_value", 0) or 0),
                 },
                 "High frequency can be legitimate for specialized suppliers; verify market depth.",
-                refs=row.get("refs", []),
+                refs=cast(list[str] | None, row.get("refs", [])),
                 follow_up=[
-                    f"probid supplier \"{supplier}\"",
-                    f"probid network \"{supplier}\"",
+                    f'probid supplier "{supplier}"',
+                    f'probid network "{supplier}"',
                 ],
             )
         )
@@ -411,7 +415,7 @@ def analyze_probe_findings(
                MAX((award_amount / approved_budget) * 100) AS max_utilization,
                SUM(award_amount) AS total_amount
         FROM awards
-        WHERE {' AND '.join(near_where)}
+        WHERE {" AND ".join(near_where)}
         GROUP BY LOWER(TRIM(agency)), LOWER(TRIM(supplier))
         HAVING hit_count >= 3
         ORDER BY hit_count DESC, total_amount DESC

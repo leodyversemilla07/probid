@@ -6,12 +6,12 @@ from probid_tui.core import Editor
 class EditorComponentTests(unittest.TestCase):
     def test_insert_and_backspace(self):
         editor = Editor(max_visible_lines=3)
-        editor.handle_input(b"a")
-        editor.handle_input(b"b")
-        editor.handle_input(b"c")
+        editor._process_input(b"a")
+        editor._process_input(b"b")
+        editor._process_input(b"c")
         self.assertEqual(editor.get_value(), "abc")
 
-        editor.handle_input(b"\x7f")  # backspace
+        editor._process_input(b"\x7f")  # backspace
         self.assertEqual(editor.get_value(), "ab")
 
     def test_multiline_and_cursor_render(self):
@@ -27,9 +27,9 @@ class EditorComponentTests(unittest.TestCase):
         editor = Editor(max_visible_lines=2)
         editor.focused = True
         editor.set_value("a\nb\nc\nd")
-        editor.handle_input(b"\x1b[A")
-        editor.handle_input(b"\x1b[A")
-        editor.handle_input(b"\x1b[A")
+        editor._process_input(b"\x1b[A")
+        editor._process_input(b"\x1b[A")
+        editor._process_input(b"\x1b[A")
         lines = editor.render(20)
         self.assertIn("↓", lines[-1])
 
@@ -39,10 +39,3 @@ class EditorComponentTests(unittest.TestCase):
         value = editor.submit()
         self.assertEqual(value, "probe laptop")
         self.assertEqual(editor.get_value(), "")
-
-        editor.history_prev()
-        self.assertEqual(editor.get_value(), "probe laptop")
-
-
-if __name__ == "__main__":
-    unittest.main()

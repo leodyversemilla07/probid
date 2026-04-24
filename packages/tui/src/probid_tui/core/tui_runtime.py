@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Literal
+from typing import Any, Literal, cast
 
 from probid_tui.core.ansi_utils import truncate_to_width
 from probid_tui.core.component import Component, Focusable, is_focusable
@@ -86,7 +87,7 @@ class OverlayOptions:
 
 
 class OverlayHandle:
-    def __init__(self, tui: "TUI", entry: dict[str, Any]):
+    def __init__(self, tui: TUI, entry: dict[str, Any]):
         self._tui = tui
         self._entry = entry
 
@@ -408,10 +409,12 @@ class TUI(Container):
 
     def set_focus(self, component: Component | None) -> None:
         if is_focusable(self._focused):
-            self._focused.focused = False  # type: ignore[attr-defined]
+            cast_focused = cast(Focusable, self._focused)
+            cast_focused.focused = False
         self._focused = component
         if is_focusable(component):
-            component.focused = True  # type: ignore[attr-defined]
+            cast_component = cast(Focusable, component)
+            cast_component.focused = True
         self.request_render()
 
     def set_input_handler(self, handler) -> None:
@@ -424,7 +427,11 @@ class TUI(Container):
             if self._focused is not None:
                 if is_key_release(data) and not getattr(self._focused, "wants_key_release", False):
                     continue
-                consumed = bool(self._focused.handle_input(data))
+                handler = self._focused.handle_input
+                if callable(handler):
+                    consumed = bool(handler(data))
+                else:
+                    consumed = bool(self._focused._process_input(data))
             if not consumed and self._input_handler is not None:
                 self._input_handler(data)
         self.request_render()

@@ -34,9 +34,17 @@ class PlanExecutionEdgeCaseTests(unittest.TestCase):
             execute_plan_steps(
                 {
                     "steps": [
-                        {"tool": "probe", "args": {}, "cli_equivalent": "probid probe x"},
+                        {
+                            "tool": "probe",
+                            "args": {},
+                            "cli_equivalent": "probid probe x",
+                        },
                         {"tool": "fail", "args": {}, "cli_equivalent": "probid fail"},
-                        {"tool": "search", "args": {}, "cli_equivalent": "probid search y"},
+                        {
+                            "tool": "search",
+                            "args": {},
+                            "cli_equivalent": "probid search y",
+                        },
                     ]
                 },
                 registry,

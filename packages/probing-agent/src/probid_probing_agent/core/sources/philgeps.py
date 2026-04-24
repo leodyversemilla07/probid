@@ -7,11 +7,11 @@ Playwright handles the JS execution that simple HTTP clients can't.
 from __future__ import annotations
 
 import atexit
-import re
 import logging
+import re
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable
 from urllib.parse import urljoin
 
 logger = logging.getLogger(__name__)
@@ -51,16 +51,23 @@ def _retry(max_attempts: int = 2):
     """
     # Transient network/browser error patterns — must be specific to avoid false matches
     _TRANSIENT_PATTERNS = (
-        "closed", "target closed", "page crashed", "browser closed",
-        "timeout", "timed out",
-        "connection reset", "connection refused", "connection closed",
-        "net::err_", "disconnected",
+        "closed",
+        "target closed",
+        "page crashed",
+        "browser closed",
+        "timeout",
+        "timed out",
+        "connection reset",
+        "connection refused",
+        "connection closed",
+        "net::err_",
+        "disconnected",
     )
 
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
-            last_err = None
+            last_err: Exception | None = None
             for attempt in range(max_attempts):
                 try:
                     return fn(*args, **kwargs)
@@ -71,8 +78,11 @@ def _retry(max_attempts: int = 2):
                         raise  # Programming error or permanent OS error — don't retry
                     last_err = e
                     _handle_retry(e, attempt, max_attempts)
+            assert last_err is not None, "Expected last_err to be set after retry loop"
             raise last_err
+
         return wrapper
+
     return decorator
 
 
@@ -134,7 +144,7 @@ def _get_context(headless: bool = True):
     _browser = _pw.chromium.launch(headless=headless)
     _context = _browser.new_context(
         user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         viewport={"width": 1280, "height": 720},
     )
     atexit.register(close)
@@ -191,14 +201,14 @@ def search(query: str, max_pages: int = 1) -> list[dict]:
         page.wait_for_load_state("domcontentloaded")
 
         # Wait for search input to appear
-        search_input = page.locator('#txtKeyword')
+        search_input = page.locator("#txtKeyword")
         search_input.wait_for(state="visible", timeout=10000)
         search_input.fill(query)
 
         # Click the search button and wait for results
-        page.locator('#btnSearch').click()
+        page.locator("#btnSearch").click()
         page.wait_for_load_state("domcontentloaded")
-        page.locator('table tr td').first.wait_for(state="visible", timeout=15000)
+        page.locator("table tr td").first.wait_for(state="visible", timeout=15000)
 
         results = []
         for page_num in range(1, max_pages + 1):
@@ -229,10 +239,10 @@ def _parse_search_results(page) -> list[dict]:
 
     # Results are in table rows after the header row
     # Structure: row number | publish date | closing date | title (with link)
-    rows = page.locator('table tr').all()
+    rows = page.locator("table tr").all()
 
     for row in rows:
-        cells = row.locator('td').all()
+        cells = row.locator("td").all()
         if len(cells) < 4:
             continue
 
@@ -247,15 +257,15 @@ def _parse_search_results(page) -> list[dict]:
 
         # Title cell contains a link + ", category, area"
         title_cell = cells[3]
-        link = title_cell.locator('a').first
+        link = title_cell.locator("a").first
         if link.count() == 0:
             continue
 
         title = link.inner_text().strip()
-        href = link.get_attribute('href') or ""
+        href = link.get_attribute("href") or ""
 
         # Extract refID from URL
-        ref_match = re.search(r'refID=(\d+)', href)
+        ref_match = re.search(r"refID=(\d+)", href)
         ref_no = ref_match.group(1) if ref_match else ""
 
         # Parse trailing text for category and area
@@ -266,32 +276,34 @@ def _parse_search_results(page) -> list[dict]:
             full_text = title_cell.text_content().strip()
             idx = full_text.find(link_text)
             if idx >= 0:
-                remainder = full_text[idx + len(link_text):].strip().lstrip(',').strip()
+                remainder = full_text[idx + len(link_text) :].strip().lstrip(",").strip()
             else:
                 remainder = ""
         except Exception:
             remainder = ""
-        parts = [p.strip() for p in remainder.split(',')] if remainder else []
+        parts = [p.strip() for p in remainder.split(",")] if remainder else []
         category = parts[0] if len(parts) > 0 else ""
         area = parts[1] if len(parts) > 1 else ""
 
         # Build full detail URL
         detail_url = urljoin(page.url, href) if href else ""
 
-        results.append({
-            "ref_no": ref_no,
-            "title": title,
-            "agency": "",  # Real agency only available in detail page
-            "notice_type": "",
-            "category": category,
-            "area_of_delivery": area,
-            "posted_date": _normalize_date(posted_date),
-            "closing_date": _normalize_date(closing_date),
-            "approved_budget": 0,
-            "description": "",
-            "url": detail_url,
-            "documents": [],
-        })
+        results.append(
+            {
+                "ref_no": ref_no,
+                "title": title,
+                "agency": "",  # Real agency only available in detail page
+                "notice_type": "",
+                "category": category,
+                "area_of_delivery": area,
+                "posted_date": _normalize_date(posted_date),
+                "closing_date": _normalize_date(closing_date),
+                "approved_budget": 0,
+                "description": "",
+                "url": detail_url,
+                "documents": [],
+            }
+        )
 
     return results
 
@@ -313,18 +325,18 @@ def get_notice_detail(ref_id: str) -> dict:
         url = f"{DETAIL_URL}?menuIndex=3&refID={ref_id}&highlight=true"
         _rate_limit()
         page.goto(url, wait_until="domcontentloaded", timeout=30000)
-        page.locator('table tr td').first.wait_for(state="visible", timeout=10000)
+        page.locator("table tr td").first.wait_for(state="visible", timeout=10000)
 
         detail = {"ref_no": ref_id, "url": url}
 
         # Parse key-value rows from the detail table
-        rows = page.locator('table tr').all()
+        rows = page.locator("table tr").all()
         for row in rows:
-            cells = row.locator('td').all()
+            cells = row.locator("td").all()
             if len(cells) < 2:
                 continue
 
-            label = cells[0].inner_text().strip().rstrip(':')
+            label = cells[0].inner_text().strip().rstrip(":")
             value = cells[1].inner_text().strip()
 
             field_map = {
@@ -347,18 +359,17 @@ def get_notice_detail(ref_id: str) -> dict:
 
         # Parse budget
         budget_raw = detail.get("budget_raw", "")
-        budget_match = re.search(r'PHP\s*([\d,]+(?:\.\d+)?)', budget_raw)
+        budget_match = re.search(r"PHP\s*([\d,]+(?:\.\d+)?)", budget_raw)
         if budget_match:
-            detail["approved_budget"] = float(budget_match.group(1).replace(',', ''))
+            detail["approved_budget"] = str(float(budget_match.group(1).replace(",", "")))
         else:
-            detail["approved_budget"] = 0
+            detail["approved_budget"] = "0"
 
         detail.pop("budget_raw", None)
 
         # Extract description from the full page text
         try:
-            desc_section = page.locator('td:has-text("Description") + td, '
-                                        'td:has-text("Item/s") + td').first
+            desc_section = page.locator('td:has-text("Description") + td, td:has-text("Item/s") + td').first
             detail["description"] = desc_section.inner_text().strip()[:500]
         except Exception:
             detail["description"] = ""
@@ -389,7 +400,7 @@ def search_awards(agency: str = "", max_pages: int = 1) -> list[dict]:
     try:
         _rate_limit()
         page.goto(AWARDS_URL, wait_until="domcontentloaded", timeout=60000)
-        page.locator('table tr td').first.wait_for(state="visible", timeout=15000)
+        page.locator("table tr td").first.wait_for(state="visible", timeout=15000)
 
         pages_count = max(1, max_pages)
         agency_filter = agency.lower().strip() if agency else ""
@@ -398,10 +409,7 @@ def search_awards(agency: str = "", max_pages: int = 1) -> list[dict]:
         for page_num in range(1, pages_count + 1):
             page_awards = _parse_award_rows(page, fallback_agency=agency)
             if agency_filter:
-                page_awards = [
-                    a for a in page_awards
-                    if agency_filter in a.get("agency", "").lower()
-                ]
+                page_awards = [a for a in page_awards if agency_filter in a.get("agency", "").lower()]
             awards.extend(page_awards)
 
             if page_num >= pages_count:
@@ -542,8 +550,7 @@ def _go_to_next_results_page(page) -> bool:
 
     if saw_next_control and errors:
         raise RuntimeError(
-            "Found pagination controls but failed to navigate to next awards page: "
-            + " | ".join(errors)
+            "Found pagination controls but failed to navigate to next awards page: " + " | ".join(errors)
         )
 
     return False
@@ -577,9 +584,7 @@ def list_agencies(
 
         agencies: list[dict] = []
         page_selector = page.locator("#pgCtrlOpp_pageDropDownList")
-        page_values = page.locator("#pgCtrlOpp_pageDropDownList option").evaluate_all(
-            "opts => opts.map(o => o.value)"
-        )
+        page_values = page.locator("#pgCtrlOpp_pageDropDownList option").evaluate_all("opts => opts.map(o => o.value)")
         total_pages = len(page_values)
         pages_count = min(max(1, max_pages), total_pages)
 
@@ -659,11 +664,13 @@ def _parse_agency_rows(page) -> list[dict]:
         if not opportunity_count.isdigit():
             continue
 
-        agencies.append({
-            "rank": int(rank),
-            "name": name,
-            "opportunity_count": int(opportunity_count),
-        })
+        agencies.append(
+            {
+                "rank": int(rank),
+                "name": name,
+                "opportunity_count": int(opportunity_count),
+            }
+        )
 
     return agencies
 
@@ -673,8 +680,8 @@ def _normalize_date(date_str: str) -> str:
     if not date_str:
         return ""
     # Remove time portion if present
-    date_str = date_str.split(' ')[0]
-    parts = date_str.split('/')
+    date_str = date_str.split(" ")[0]
+    parts = date_str.split("/")
     if len(parts) == 3:
         try:
             day, month, year = parts
@@ -690,7 +697,7 @@ def _normalize_date(date_str: str) -> str:
 
 def _parse_amount(text: str) -> float:
     """Parse a currency amount string to float."""
-    text = re.sub(r'[^\d.]', '', text)
+    text = re.sub(r"[^\d.]", "", text)
     try:
         return float(text) if text else 0.0
     except ValueError:

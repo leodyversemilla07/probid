@@ -1,5 +1,7 @@
 """Web UI application placeholder for probid."""
 
+from collections.abc import Callable
+
 
 class ProbidWebApp:
     """Minimal web application placeholder.
@@ -10,13 +12,15 @@ class ProbidWebApp:
     """
 
     def __init__(self):
-        self.routes: dict[str, callable] = {}
+        self.routes: dict[str, Callable] = {}
 
     def route(self, path: str):
         """Decorator to register a route handler."""
-        def decorator(func: callable):
+
+        def decorator(func: Callable):
             self.routes[path] = func
             return func
+
         return decorator
 
     def run(self, host: str = "localhost", port: int = 8080):

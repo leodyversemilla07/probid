@@ -88,12 +88,23 @@ class PhilgepsAwardsTests(unittest.TestCase):
     @patch("probid_probing_agent.core.sources.philgeps._get_context")
     def test_search_awards_parses_rows_and_ref_id(self, mock_get_context, _mock_rate_limit):
         rows = [
-            _Row([_Cell("#"), _Cell("Date"), _Cell("Project"), _Cell("Supplier"), _Cell("Amount")]),
+            _Row(
+                [
+                    _Cell("#"),
+                    _Cell("Date"),
+                    _Cell("Project"),
+                    _Cell("Supplier"),
+                    _Cell("Amount"),
+                ]
+            ),
             _Row(
                 [
                     _Cell("1"),
                     _Cell("01/04/2026"),
-                    _Cell("Laptop Supply", href="SplashBidNoticeAbstractUI.aspx?refID=12905086"),
+                    _Cell(
+                        "Laptop Supply",
+                        href="SplashBidNoticeAbstractUI.aspx?refID=12905086",
+                    ),
                     _Cell("ACME CORP"),
                     _Cell("PHP 1,234,567.89"),
                 ]
@@ -102,7 +113,10 @@ class PhilgepsAwardsTests(unittest.TestCase):
                 [
                     _Cell("2"),
                     _Cell("02/04/2026"),
-                    _Cell("Server Upgrade", href="SplashBidNoticeAbstractUI.aspx?refID=12000001"),
+                    _Cell(
+                        "Server Upgrade",
+                        href="SplashBidNoticeAbstractUI.aspx?refID=12000001",
+                    ),
                     _Cell("BETA INC"),
                     _Cell("PHP 987,654.00"),
                 ]
