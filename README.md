@@ -192,6 +192,8 @@ probid search "server" --pages 3 --detail
 
 # Fetch a specific notice
 probid detail 12905086
+probid detail 12905086 --cache-only
+probid detail 12905086 --force
 
 # List contract awards
 probid awards

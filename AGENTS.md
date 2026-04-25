@@ -63,6 +63,8 @@ This file is the single source of instructions for coding agents working in this
 - Search notices: `probid search "laptop"`
 - Search with details: `probid search "server" --pages 3 --detail`
 - Notice detail: `probid detail 12905086`
+- Notice detail from cache only: `probid detail 12905086 --cache-only`
+- Notice detail forced refresh: `probid detail 12905086 --force`
 - Awards: `probid awards`
 - Agency profile: `probid agency "DICT"`
 - Supplier profile: `probid supplier "ACME CORPORATION"`

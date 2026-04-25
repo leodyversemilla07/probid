@@ -13,7 +13,7 @@ console = Console()
 def format_php(amount: float) -> str:
     """Format a float as Philippine Peso."""
     if amount <= 0:
-        return "—"
+        return "-"
     if amount >= 1_000_000_000:
         return f"PHP {amount / 1_000_000_000:,.2f}B"
     if amount >= 1_000_000:
@@ -31,7 +31,7 @@ def show_notices(notices: list[dict], query: str = "") -> None:
 
     title = "Procurement Notices"
     if query:
-        title += f' — "{query}"'
+        title += f' - "{query}"'
 
     table = Table(
         title=title,
@@ -112,9 +112,9 @@ def show_awards(awards: list[dict], agency: str = "", supplier: str = "") -> Non
 
     title = "Recent Contract Awards"
     if agency:
-        title += f" — {agency}"
+        title += f" - {agency}"
     if supplier:
-        title += f" — {supplier}"
+        title += f" - {supplier}"
 
     table = Table(
         title=title,
@@ -136,7 +136,7 @@ def show_awards(awards: list[dict], agency: str = "", supplier: str = "") -> Non
     for i, a in enumerate(awards, 1):
         amount = a.get("award_amount", 0)
         budget = a.get("approved_budget", 0)
-        pct = f"{(amount / budget * 100):.0f}%" if budget > 0 else "—"
+        pct = f"{(amount / budget * 100):.0f}%" if budget > 0 else "-"
 
         project = a.get("project_title", "")
         if len(project) > 40:
@@ -199,7 +199,7 @@ def show_agency_stats(stats: dict, agency: str) -> None:
             name = s.get("supplier", "Unknown")
             total = format_php(s.get("total", 0))
             count = s.get("cnt", 0)
-            lines.append(f"  {count}x {name} — {total}")
+            lines.append(f"  {count}x {name} - {total}")
 
     console.print(
         Panel(
@@ -311,7 +311,7 @@ def show_network(result: dict, supplier_name: str) -> None:
     if result.get("competitors"):
         lines.append("\n[bold]Competitors (shared agencies):[/bold]")
         for c in result["competitors"][:10]:
-            lines.append(f"  {c['supplier']} — {c['shared_agencies']} shared agencies")
+            lines.append(f"  {c['supplier']} - {c['shared_agencies']} shared agencies")
 
     console.print(
         Panel(
@@ -368,7 +368,7 @@ def show_split_contracts(results: list[dict], agency: str) -> None:
             date = c.get("award_date", "")
             amount = format_php(c.get("award_amount", 0))
             title = c.get("project_title", "")[:60]
-            lines.append(f"  {date} — {amount} — {title}")
+            lines.append(f"  {date} - {amount} - {title}")
 
         console.print(
             Panel(
@@ -394,7 +394,7 @@ def show_probe_summary(result: dict) -> None:
 
     lines = [
         f"[bold]Query:[/bold] {metadata.get('query', '')}",
-        f"[bold]Agency filter:[/bold] {metadata.get('agency') or '—'}",
+        f"[bold]Agency filter:[/bold] {metadata.get('agency') or '-'}",
         f"[bold]Pages scanned:[/bold] {metadata.get('pages_scanned', 1)}",
         f"[bold]Records scanned:[/bold] {summary.get('records_scanned', 0)}",
         f"[bold]Agencies touched:[/bold] {summary.get('agencies_touched', 0)}",
@@ -476,7 +476,7 @@ def show_probe_findings(findings: list[dict], show_why: bool = False) -> None:
             console.print(
                 Panel(
                     "\n".join(lines),
-                    title=f"[bold magenta]{finding.get('reason_code', '')} — Why[/bold magenta]",
+                    title=f"[bold magenta]{finding.get('reason_code', '')} - Why[/bold magenta]",
                     box=box.SQUARE,
                     border_style="magenta",
                 )

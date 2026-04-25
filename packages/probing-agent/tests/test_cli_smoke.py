@@ -3,7 +3,7 @@
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 class CliSmokeTests(unittest.TestCase):
@@ -97,6 +97,59 @@ class CliSmokeTests(unittest.TestCase):
         mock_analyze.assert_called_once()
         mock_close.assert_called_once()
         self.assertIn('"query": "laptop"', result.output)
+
+    def test_cli_detail_cache_only_uses_cache_without_scraping(self):
+        from click.testing import CliRunner
+
+        from probid_probing_agent.cli import cli
+
+        cached_row = {
+            "ref_no": "12905086",
+            "title": "Cached laptop notice",
+            "agency": "DICT",
+            "documents": "[]",
+        }
+        conn = Mock()
+        conn.execute.return_value.fetchone.return_value = cached_row
+
+        @contextmanager
+        def fake_connection(db_path=None):
+            yield conn
+
+        runner = CliRunner()
+        with (
+            patch("probid_probing_agent.cli.commands.search.cache.connection", fake_connection),
+            patch("probid_probing_agent.cli.commands.search.geps.get_notice_detail") as mock_get_detail,
+        ):
+            result = runner.invoke(cli, ["detail", "12905086", "--cache-only"])
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Showing cached data", result.output)
+        self.assertIn("Cached laptop notice", result.output)
+        mock_get_detail.assert_not_called()
+
+    def test_cli_detail_cache_only_reports_missing_cache_without_scraping(self):
+        from click.testing import CliRunner
+
+        from probid_probing_agent.cli import cli
+
+        conn = Mock()
+        conn.execute.return_value.fetchone.return_value = None
+
+        @contextmanager
+        def fake_connection(db_path=None):
+            yield conn
+
+        runner = CliRunner()
+        with (
+            patch("probid_probing_agent.cli.commands.search.cache.connection", fake_connection),
+            patch("probid_probing_agent.cli.commands.search.geps.get_notice_detail") as mock_get_detail,
+        ):
+            result = runner.invoke(cli, ["detail", "12905086", "--cache-only"])
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("No cached detail found for 12905086", result.output)
+        mock_get_detail.assert_not_called()
 
     def test_cli_exports_command_lists_recent_export_artifacts(self):
         import tempfile

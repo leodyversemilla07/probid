@@ -153,23 +153,27 @@ def register_search_commands(cli: click.Group) -> None:
     @cli.command()
     @click.argument("ref_id")
     @click.option("--force", "-f", is_flag=True, help="Re-fetch even if cached")
-    def detail(ref_id: str, force: bool):
+    @click.option("--cache-only", is_flag=True, help="Only use cached detail data (no scraping)")
+    def detail(ref_id: str, force: bool, cache_only: bool):
         """Fetch full details for a procurement notice by reference ID.
 
         REF_ID is the PhilGEPS reference number (e.g., 12905086).
         """
         with cache.connection() as conn:
-            if not force:
-                cached = conn.execute("SELECT * FROM notices WHERE ref_no = ?", (ref_id,)).fetchone()
-                if cached:
-                    display.info("Showing cached data (use --force to re-fetch)")
-                    detail_data = dict(cached)
-                    try:
-                        detail_data["documents"] = json.loads(detail_data.get("documents", "[]"))
-                    except (json.JSONDecodeError, TypeError):
-                        detail_data["documents"] = []
-                    display.show_notice_detail(detail_data)
-                    return
+            cached = None if force else conn.execute("SELECT * FROM notices WHERE ref_no = ?", (ref_id,)).fetchone()
+            if cached:
+                display.info("Showing cached data (use --force to re-fetch)")
+                detail_data = dict(cached)
+                try:
+                    detail_data["documents"] = json.loads(detail_data.get("documents", "[]"))
+                except (json.JSONDecodeError, TypeError):
+                    detail_data["documents"] = []
+                display.show_notice_detail(detail_data)
+                return
+
+            if cache_only:
+                display.error(f"No cached detail found for {ref_id}")
+                return
 
             display.info(f"Fetching details for {ref_id}...")
             try:
