@@ -35,6 +35,8 @@ def main() -> int:
     ]
 
     for suite in suites:
+        if not (ROOT / suite).is_dir():
+            continue
         cmd = [sys.executable, "-m", "unittest", "discover", "-s", suite, "-v"]
         code = subprocess.call(cmd, cwd=ROOT, env=env)
         if code != 0:

@@ -1,7 +1,9 @@
 import json
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
+from types import SimpleNamespace
 
 from click.testing import CliRunner
 
@@ -10,6 +12,11 @@ from probid_probing_agent.core.session import AgentSessionLogger
 
 
 class AgentRuntimeContractTests(unittest.TestCase):
+    @contextmanager
+    def _tmp_db(self):
+        with tempfile.TemporaryDirectory() as td:
+            yield SimpleNamespace(name=str(Path(td) / "test.db"))
+
     def _seed_db(self, db_path: str) -> None:
         with cache.connection(db_path=db_path) as conn:
             cache.upsert_notice(
@@ -80,7 +87,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_runtime_returns_contract_keys(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             result = runtime.handle_input("probe laptop")
@@ -116,7 +123,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_runtime_uses_named_provider_and_returns_provider_in_result(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True, provider="deterministic")
             result = runtime.handle_input("probe laptop")
@@ -142,7 +149,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_cli_query_mode_runs_single_turn(self):
         from probid_probing_agent.cli import cli
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runner = CliRunner()
             result = runner.invoke(
@@ -158,7 +165,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
         ):
             self._seed_db(tmp.name)
             runner = CliRunner()
@@ -199,7 +206,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
         ):
             self._seed_db(tmp.name)
             runner = CliRunner()
@@ -238,7 +245,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
             tempfile.NamedTemporaryFile(suffix=".md", delete=False) as out,
         ):
             out_path = out.name
@@ -282,7 +289,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
             tempfile.NamedTemporaryFile(suffix=".json", delete=False) as out,
         ):
             out_path = out.name
@@ -326,7 +333,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
             tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as out,
         ):
             out_path = out.name
@@ -371,7 +378,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
             tempfile.NamedTemporaryFile(suffix=".json", delete=False) as out,
         ):
             out_path = out.name
@@ -427,7 +434,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
             tempfile.NamedTemporaryFile(suffix=".json", delete=False) as out,
         ):
             self._seed_db(tmp.name)
@@ -486,7 +493,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
             tempfile.NamedTemporaryFile(suffix=".md", delete=False) as first_out,
             tempfile.NamedTemporaryFile(suffix=".md", delete=False) as second_out,
         ):
@@ -544,7 +551,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
             tempfile.NamedTemporaryFile(suffix=".json", delete=False) as first_out,
             tempfile.NamedTemporaryFile(suffix=".json", delete=False) as second_out,
         ):
@@ -602,7 +609,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
             tempfile.NamedTemporaryFile(suffix=".json", delete=False) as out,
         ):
             self._seed_db(tmp.name)
@@ -637,9 +644,10 @@ class AgentRuntimeContractTests(unittest.TestCase):
             result = runner.invoke(cli, ["exports", "--session-dir", td, "--json"])
 
         self.assertEqual(result.exit_code, 0)
-        self.assertIn('"exports"', result.output)
-        self.assertIn('"export_format": "json"', result.output)
-        self.assertIn(out.name, result.output)
+        payload = json.loads(result.output)
+        self.assertIn("exports", payload)
+        self.assertEqual(payload["exports"][0]["export_format"], "json")
+        self.assertEqual(payload["exports"][0]["output_path"], out.name)
 
     def test_cli_exports_command_accepts_session_id_prefix(self):
         from probid_probing_agent.cli import cli
@@ -670,7 +678,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
             tempfile.NamedTemporaryFile(suffix=".json", delete=False) as out,
         ):
             self._seed_db(tmp.name)
@@ -714,7 +722,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
             tempfile.NamedTemporaryFile(suffix=".md", delete=False) as out,
         ):
             self._seed_db(tmp.name)
@@ -781,7 +789,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_emits_tool_execution_events(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             events = []
@@ -801,7 +809,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
         ):
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(
@@ -828,7 +836,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
         ):
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(
@@ -858,7 +866,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
         ):
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(
@@ -894,7 +902,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_mismatched_reexport_alias_returns_no_export(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -909,7 +917,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
         ):
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(
@@ -943,7 +951,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as td,
-            tempfile.NamedTemporaryFile(suffix=".db") as tmp,
+            self._tmp_db() as tmp,
         ):
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(
@@ -975,7 +983,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_lists_prior_exports(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1015,7 +1023,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_queue_state_and_applied_messages(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             events = []
@@ -1038,7 +1046,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_queue_drains_one_item_per_turn(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.session.steer("focus on DICT")
@@ -1082,7 +1090,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_memory_carries_agency_context_across_turns(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             first = runtime.handle_input("probe laptop in DICT")
@@ -1097,7 +1105,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_steering_updates_structured_context(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.session.steer("focus on DICT")
@@ -1110,7 +1118,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_why_reuses_probe_context(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop in DICT")
@@ -1123,7 +1131,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_high_confidence_uses_context(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop in DICT")
@@ -1136,7 +1144,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_detail_first_ref_uses_previous_probe(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1148,7 +1156,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_supplier_behind_that_uses_previous_probe(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1160,7 +1168,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_second_supplier_uses_ranked_candidates(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             with cache.connection(db_path=tmp.name) as conn:
                 cache.upsert_award(
@@ -1187,7 +1195,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_most_recent_award_uses_ranked_refs(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             with cache.connection(db_path=tmp.name) as conn:
                 cache.upsert_award(
@@ -1214,7 +1222,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_drill_into_top_finding_uses_top_ref(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1226,7 +1234,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_explain_top_finding_replays_last_result(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1239,7 +1247,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_evidence_support_replays_last_evidence(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1252,7 +1260,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_caveats_replays_last_caveats(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1265,7 +1273,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_simple_summary_replays_last_result(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1278,7 +1286,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_compare_top_two_findings(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             with cache.connection(db_path=tmp.name) as conn:
                 cache.upsert_award(
@@ -1306,7 +1314,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_top_finding_caveats(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1319,7 +1327,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_strongest_finding(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1333,7 +1341,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_next_checks(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1346,7 +1354,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_more_concise(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1359,7 +1367,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_nontechnical_reader(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1372,7 +1380,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_checklist_version(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1386,7 +1394,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_safest_next_command(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1400,7 +1408,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_investigation_note(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1413,7 +1421,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_short_memo(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1426,7 +1434,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_structured_recap(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1440,7 +1448,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_json_export(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1455,7 +1463,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_export_followups_do_not_overwrite_investigation_top_finding(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1473,7 +1481,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_markdown_report(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1488,7 +1496,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_compact_case_summary(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1503,7 +1511,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_csv_summary(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1517,7 +1525,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_case_timeline(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1531,7 +1539,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_findings_table(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1545,7 +1553,7 @@ class AgentRuntimeContractTests(unittest.TestCase):
     def test_session_followup_handoff_note(self):
         from probid_probing_agent.core.runtime import ProbidAgentRuntime
 
-        with tempfile.NamedTemporaryFile(suffix=".db") as tmp:
+        with self._tmp_db() as tmp:
             self._seed_db(tmp.name)
             runtime = ProbidAgentRuntime(db_path=tmp.name, default_cache_only=True)
             runtime.handle_input("probe laptop awards")
@@ -1558,8 +1566,8 @@ class AgentRuntimeContractTests(unittest.TestCase):
         self.assertIn("priority_finding", result["export"]["content"])
 
     def test_session_logger_can_retrieve_record_by_turn_id(self):
-        with tempfile.NamedTemporaryFile(suffix=".jsonl") as tmp:
-            logger = AgentSessionLogger(path=Path(tmp.name))
+        with tempfile.TemporaryDirectory() as td:
+            logger = AgentSessionLogger(path=Path(td) / "turns.jsonl")
             turn_id = logger.log_turn(
                 "probe laptop",
                 {

@@ -2,6 +2,7 @@
 
 import os
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from probid_ai.client import getenv_or_raise
@@ -67,10 +68,13 @@ class AIClientTests(unittest.TestCase):
 
     @patch("probid_ai.env_api_keys.Path.exists", return_value=True)
     def test_get_env_api_key_google_vertex_authenticated_marker(self, _exists):
-        with patch.dict(
-            os.environ,
-            {"GOOGLE_CLOUD_PROJECT": "proj", "GOOGLE_CLOUD_LOCATION": "us-central1"},
-            clear=True,
+        with (
+            patch.dict(
+                os.environ,
+                {"GOOGLE_CLOUD_PROJECT": "proj", "GOOGLE_CLOUD_LOCATION": "us-central1"},
+                clear=True,
+            ),
+            patch("probid_ai.env_api_keys.Path.home", return_value=Path("/home/test")),
         ):
             self.assertEqual(get_env_api_key("google-vertex"), "<authenticated>")
 
