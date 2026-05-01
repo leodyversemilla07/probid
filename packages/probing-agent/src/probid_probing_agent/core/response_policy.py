@@ -1,4 +1,7 @@
-"""Domain response policy for procurement probing outputs."""
+"""Domain response policy for procurement probing outputs.
+
+TODO: Add unit tests for _enrich_* payload methods to cover profile, overprice, network paths.
+"""
 
 from __future__ import annotations
 

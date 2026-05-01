@@ -58,12 +58,15 @@ class ProbidAgentRuntime(BaseAgentRuntime):
     def available_tools(self) -> list[str]:
         return [
             'probid probe "<query>" --pages 1 --min-confidence low --max-findings 5',
+            'probid search "<keyword>"',
             "probid detail <ref_id>",
             "probid awards",
             'probid supplier "<name>"',
             'probid agency "<name>"',
             "probid repeat --min-count 3",
             'probid split "<agency>" --gap-days 30',
+            'probid network "<supplier>"',
+            'probid overprice "<category>" --threshold 200',
         ]
 
     def _validate_plan(self, plan: ExecutionPlan) -> None:

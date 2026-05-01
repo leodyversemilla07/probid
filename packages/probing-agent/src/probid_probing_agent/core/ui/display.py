@@ -1,4 +1,7 @@
-"""Rich-based terminal display for procurement data."""
+"""Rich-based terminal display for procurement data.
+
+TODO: Add unit tests for display functions to cover formatting edge cases.
+"""
 
 from __future__ import annotations
 

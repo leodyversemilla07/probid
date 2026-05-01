@@ -518,7 +518,7 @@ def _format_result(result: dict[str, Any]) -> list[str]:
 
     findings = result.get("findings", [])
     for idx, finding in enumerate(findings[:8], 1):
-        code = finding.get("code", "?") if isinstance(finding, dict) else "?"
+        code = finding.get("reason_code", "?") if isinstance(finding, dict) else "?"
         summary = finding.get("summary", str(finding)) if isinstance(finding, dict) else str(finding)
         lines.append(f"{idx}. [{code}] {summary}")
 

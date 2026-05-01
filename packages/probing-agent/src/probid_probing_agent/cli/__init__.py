@@ -139,7 +139,7 @@ def cli(
             from probid_probing_agent.modes.interactive.tui_mode import run_interactive
 
             # Default to internal probid TUI so `probid` always opens the harness UI.
-            run_interactive(runtime, model="gpt-4", provider=provider)
+            run_interactive(runtime, model=provider, provider=provider)
         else:
             from probid_probing_agent.modes.interactive.repl import run_agent_repl
 

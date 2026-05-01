@@ -1,6 +1,6 @@
 .PHONY: test test-contract help run sync lint format check type
 
-PYTHONPATH_MONOREPO=packages/probing-agent/src:packages/agent/src:packages/ai/src:packages/tui/src:packages/mom/src:packages/pods/src
+PYTHONPATH_MONOREPO=packages/probing-agent/src:packages/agent/src:packages/ai/src:packages/tui/src
 
 sync:
 	uv sync --extra dev

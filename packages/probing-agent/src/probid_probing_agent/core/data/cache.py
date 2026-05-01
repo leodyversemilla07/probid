@@ -1,4 +1,7 @@
-"""SQLite-backed cache for scraped data."""
+"""SQLite-backed cache for scraped data.
+
+TODO: Add unit tests for CRUD functions, edge cases (empty strings, malformed data).
+"""
 
 from __future__ import annotations
 

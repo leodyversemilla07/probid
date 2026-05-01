@@ -29,8 +29,7 @@ def main() -> int:
         "packages/ai/tests",
         "packages/tui/tests",
         "packages/web-ui/tests",
-        "packages/mom/tests",
-        "packages/pods/tests",
+
         "packages/probing-agent/tests",
     ]
 
